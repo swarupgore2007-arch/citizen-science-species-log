@@ -1,0 +1,15 @@
+{
+  "name": "citizen-science-species-log",
+  "version": "2.0.0",
+  "description": "Full-stack citizen science biodiversity platform",
+  "scripts": {
+    "install-backend": "cd backend && npm install",
+    "start-backend": "cd backend && npm start",
+    "dev-backend": "cd backend && npm run dev",
+    "start-frontend": "cd frontend && npx http-server -p 8080 -c-1",
+    "start": "npm run install-backend && start cmd /k \"npm run start-backend\" && timeout /t 3 && npm run start-frontend"
+  },
+  "keywords": ["biodiversity", "citizen-science", "mongodb", "express", "jwt"],
+  "author": "Citizen Science Team",
+  "license": "MIT"
+}
