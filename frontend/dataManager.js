@@ -9,7 +9,7 @@ window.DM = {
   //  API CONFIGURATION
   // ──────────────────────────────────────────────────────────
   apiBase: 'http://localhost:3001/api',
-  tokenKey: 'authToken',
+  tokenKey: 'token',
 
   // ──────────────────────────────────────────────────────────
   //  GET AUTH TOKEN
@@ -29,7 +29,7 @@ window.DM = {
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` })
+        'Authorization': token ? `Bearer ${token}` : ''
       }
     };
 

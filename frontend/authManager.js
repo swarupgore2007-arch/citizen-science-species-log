@@ -13,7 +13,7 @@
   //  CONFIGURATION
   // ──────────────────────────────────────────────────────────
   const API_BASE = 'http://localhost:3001/api/auth';
-  const TOKEN_KEY = 'authToken';
+  const TOKEN_KEY = 'token';
   const USER_KEY = 'currentUser';
 
   // ──────────────────────────────────────────────────────────
@@ -99,7 +99,8 @@
   }
 
   function logout() {
-    clearSession();
+    localStorage.removeItem(TOKEN_KEY);
+    // We keep USER_KEY as requested, but the app will treat the user as logged out
     window.location.reload();
   }
 
@@ -111,7 +112,7 @@
     register,
     login,
     logout,
-    isLoggedIn: () => !!localStorage.getItem('authToken'),
+    isLoggedIn: () => !!localStorage.getItem('token'),
     getCurrentUser: () => {
       const user = localStorage.getItem(USER_KEY);
       return user ? JSON.parse(user) : null;

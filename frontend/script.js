@@ -180,7 +180,7 @@ function normalizeSighting(raw) {
   const lon = Number(raw.lon ?? raw.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   return {
-    id: raw._id || raw.id || (window.DM ? DM.generateId(raw.species) : `${raw.species}-${Date.now()}`),
+    id: raw._id || raw.id,
     species: raw.species,
     category: raw.category || info.category,
     date: raw.date,
@@ -1231,7 +1231,12 @@ function authInit() {
     try {
       if (authMode === 'login') await Auth.login(user, pass);
       else await Auth.register(user, pass, full);
-      window.location.reload();
+      
+      // Immediately fetch data and show app
+      authShowGate(false);
+      if (els.authSessionName) els.authSessionName.textContent = `👤 ${user}`;
+      await loadSpeciesDataset(); 
+      showToast('Welcome back! Loading your sightings...');
     } catch (err) {
       els.authError.textContent = err.message;
     }
