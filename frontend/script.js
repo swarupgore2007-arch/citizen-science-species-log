@@ -613,7 +613,6 @@ function updateCharts() {
 }
 
 function initializeRealMap() {
-  if (!window.L || realMap) return;
   if (!window.L) return;
   if (realMap) {
     realMap.invalidateSize();
@@ -1193,8 +1192,11 @@ function authShowGate(show) {
   });
   if (els.authSessionBar) els.authSessionBar.style.display = show ? 'none' : 'flex';
 
-  if (!show && realMap) {
-    setTimeout(() => realMap.invalidateSize(), 300);
+  if (!show) {
+    setTimeout(() => {
+      if (realMap) realMap.invalidateSize();
+      else initializeRealMap();
+    }, 400);
   }
 }
 
