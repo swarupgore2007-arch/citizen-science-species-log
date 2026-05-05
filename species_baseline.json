@@ -1,0 +1,712 @@
+[
+  {
+    "id": 1,
+    "species": "Spotted Deer",
+    "category": "Mammal",
+    "expected_annual_frequency": 44.7,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Spotted Deer",
+    "areas": [
+      "Wetland Edge",
+      "Riparian Zone",
+      "Scrubland",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 2,
+    "species": "Common Mongoose",
+    "category": "Mammal",
+    "expected_annual_frequency": 24.4,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Common Mongoose",
+    "areas": [
+      "Lake Shore",
+      "Scrubland",
+      "Grassland Patch",
+      "Agricultural Margin",
+      "Rocky Outcrop",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 3,
+    "species": "Indian Hare",
+    "category": "Mammal",
+    "expected_annual_frequency": 24.7,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Indian Hare",
+    "areas": [
+      "Agricultural Margin",
+      "Campus Grounds",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 4,
+    "species": "Peacock",
+    "category": "Bird",
+    "expected_annual_frequency": 43.5,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Peacock",
+    "areas": [
+      "Agricultural Margin",
+      "Grassland Patch",
+      "Campus Grounds"
+    ]
+  },
+  {
+    "id": 5,
+    "species": "Red Junglefowl",
+    "category": "Bird",
+    "expected_annual_frequency": 5.6,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Red Junglefowl",
+    "areas": [
+      "Wetland Edge",
+      "Riparian Zone",
+      "Grassland Patch",
+      "Campus Grounds",
+      "Rocky Outcrop",
+      "Urban Garden"
+    ]
+  },
+  {
+    "id": 6,
+    "species": "Common Kingfisher",
+    "category": "Bird",
+    "expected_annual_frequency": 18.8,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Common Kingfisher",
+    "areas": [
+      "Forest Trail North",
+      "Agricultural Margin"
+    ]
+  },
+  {
+    "id": 7,
+    "species": "Indian Rolller",
+    "category": "Bird",
+    "expected_annual_frequency": 27.4,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Indian Rolller",
+    "areas": [
+      "Urban Garden",
+      "Campus Grounds",
+      "Riparian Zone"
+    ]
+  },
+  {
+    "id": 8,
+    "species": "Purple Sunbird",
+    "category": "Bird",
+    "expected_annual_frequency": 4.6,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Purple Sunbird",
+    "areas": [
+      "Campus Grounds",
+      "Forest Trail North",
+      "Grassland Patch",
+      "Scrubland",
+      "Rocky Outcrop",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 9,
+    "species": "Coppersmith Barbet",
+    "category": "Bird",
+    "expected_annual_frequency": 7.3,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Coppersmith Barbet",
+    "areas": [
+      "Scrubland",
+      "Agricultural Margin",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 10,
+    "species": "Asian Koel",
+    "category": "Bird",
+    "expected_annual_frequency": 32.8,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Asian Koel",
+    "areas": [
+      "Agricultural Margin",
+      "Rocky Outcrop",
+      "Forest Trail North",
+      "Wetland Edge",
+      "Campus Grounds",
+      "Scrubland"
+    ]
+  },
+  {
+    "id": 11,
+    "species": "Common Myna",
+    "category": "Bird",
+    "expected_annual_frequency": 18.7,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Common Myna",
+    "areas": [
+      "Forest Trail North",
+      "Grassland Patch",
+      "Scrubland"
+    ]
+  },
+  {
+    "id": 12,
+    "species": "Indian Robin",
+    "category": "Bird",
+    "expected_annual_frequency": 38.9,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Indian Robin",
+    "areas": [
+      "Lake Shore",
+      "Wetland Edge",
+      "Grassland Patch",
+      "Agricultural Margin",
+      "Scrubland"
+    ]
+  },
+  {
+    "id": 13,
+    "species": "Oriental Magpie Robin",
+    "category": "Bird",
+    "expected_annual_frequency": 25.5,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Oriental Magpie Robin",
+    "areas": [
+      "Scrubland",
+      "Grassland Patch"
+    ]
+  },
+  {
+    "id": 14,
+    "species": "White-throated Kingfisher",
+    "category": "Bird",
+    "expected_annual_frequency": 18.1,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about White-throated Kingfisher",
+    "areas": [
+      "Wetland Edge",
+      "Agricultural Margin",
+      "Forest Trail North",
+      "Riparian Zone"
+    ]
+  },
+  {
+    "id": 15,
+    "species": "Black Drongo",
+    "category": "Bird",
+    "expected_annual_frequency": 24.1,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Black Drongo",
+    "areas": [
+      "Rocky Outcrop",
+      "Campus Grounds",
+      "Grassland Patch",
+      "Urban Garden",
+      "Forest Trail North",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 16,
+    "species": "Spotted Owlet",
+    "category": "Bird",
+    "expected_annual_frequency": 28.4,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Spotted Owlet",
+    "areas": [
+      "Grassland Patch",
+      "Agricultural Margin",
+      "Rocky Outcrop",
+      "Campus Grounds"
+    ]
+  },
+  {
+    "id": 17,
+    "species": "Barn Owl",
+    "category": "Bird",
+    "expected_annual_frequency": 23.7,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Barn Owl",
+    "areas": [
+      "Agricultural Margin",
+      "Grassland Patch"
+    ]
+  },
+  {
+    "id": 18,
+    "species": "Rock Pigeon",
+    "category": "Bird",
+    "expected_annual_frequency": 45.4,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Rock Pigeon",
+    "areas": [
+      "Rocky Outcrop",
+      "Lake Shore",
+      "Urban Garden",
+      "Riparian Zone",
+      "Campus Grounds",
+      "Wetland Edge"
+    ]
+  },
+  {
+    "id": 19,
+    "species": "Rose-ringed Parakeet",
+    "category": "Bird",
+    "expected_annual_frequency": 15.2,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Rose-ringed Parakeet",
+    "areas": [
+      "Riparian Zone",
+      "Wetland Edge",
+      "Rocky Outcrop"
+    ]
+  },
+  {
+    "id": 20,
+    "species": "Black Kite",
+    "category": "Bird",
+    "expected_annual_frequency": 42.1,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Black Kite",
+    "areas": [
+      "Scrubland",
+      "Riparian Zone",
+      "Urban Garden",
+      "Wetland Edge",
+      "Rocky Outcrop"
+    ]
+  },
+  {
+    "id": 21,
+    "species": "Shikra",
+    "category": "Bird",
+    "expected_annual_frequency": 13.1,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Shikra",
+    "areas": [
+      "Rocky Outcrop",
+      "Scrubland",
+      "Wetland Edge",
+      "Agricultural Margin"
+    ]
+  },
+  {
+    "id": 22,
+    "species": "Common Hawk-Cuckoo",
+    "category": "Bird",
+    "expected_annual_frequency": 16.8,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Common Hawk-Cuckoo",
+    "areas": [
+      "Urban Garden",
+      "Riparian Zone"
+    ]
+  },
+  {
+    "id": 23,
+    "species": "Pied Bushchat",
+    "category": "Bird",
+    "expected_annual_frequency": 32.1,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Pied Bushchat",
+    "areas": [
+      "Wetland Edge",
+      "Urban Garden",
+      "Lake Shore",
+      "Riparian Zone",
+      "Agricultural Margin",
+      "Grassland Patch"
+    ]
+  },
+  {
+    "id": 24,
+    "species": "Ashy Prinia",
+    "category": "Bird",
+    "expected_annual_frequency": 28.8,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Ashy Prinia",
+    "areas": [
+      "Campus Grounds",
+      "Agricultural Margin",
+      "Wetland Edge",
+      "Rocky Outcrop"
+    ]
+  },
+  {
+    "id": 25,
+    "species": "Plain Prinia",
+    "category": "Bird",
+    "expected_annual_frequency": 24.3,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Plain Prinia",
+    "areas": [
+      "Agricultural Margin",
+      "Campus Grounds",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 26,
+    "species": "Tailor Bird",
+    "category": "Bird",
+    "expected_annual_frequency": 36.3,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Tailor Bird",
+    "areas": [
+      "Scrubland",
+      "Riparian Zone"
+    ]
+  },
+  {
+    "id": 27,
+    "species": "Jungle Babbler",
+    "category": "Bird",
+    "expected_annual_frequency": 23.2,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Jungle Babbler",
+    "areas": [
+      "Rocky Outcrop",
+      "Lake Shore",
+      "Grassland Patch"
+    ]
+  },
+  {
+    "id": 28,
+    "species": "Large Grey Babbler",
+    "category": "Bird",
+    "expected_annual_frequency": 16.8,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Large Grey Babbler",
+    "areas": [
+      "Grassland Patch",
+      "Rocky Outcrop",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 29,
+    "species": "Red-vented Bulbul",
+    "category": "Bird",
+    "expected_annual_frequency": 2.2,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Red-vented Bulbul",
+    "areas": [
+      "Scrubland",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 30,
+    "species": "Red-whiskered Bulbul",
+    "category": "Bird",
+    "expected_annual_frequency": 6.3,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Red-whiskered Bulbul",
+    "areas": [
+      "Wetland Edge",
+      "Lake Shore",
+      "Rocky Outcrop",
+      "Grassland Patch",
+      "Riparian Zone",
+      "Agricultural Margin"
+    ]
+  },
+  {
+    "id": 31,
+    "species": "White-eared Bulbul",
+    "category": "Bird",
+    "expected_annual_frequency": 4.1,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about White-eared Bulbul",
+    "areas": [
+      "Grassland Patch",
+      "Forest Trail North",
+      "Urban Garden",
+      "Wetland Edge",
+      "Agricultural Margin"
+    ]
+  },
+  {
+    "id": 32,
+    "species": "Yellow-throated Sparrow",
+    "category": "Bird",
+    "expected_annual_frequency": 31.8,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Yellow-throated Sparrow",
+    "areas": [
+      "Scrubland",
+      "Riparian Zone",
+      "Agricultural Margin"
+    ]
+  },
+  {
+    "id": 33,
+    "species": "House Sparrow",
+    "category": "Bird",
+    "expected_annual_frequency": 41.0,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about House Sparrow",
+    "areas": [
+      "Agricultural Margin",
+      "Rocky Outcrop",
+      "Grassland Patch",
+      "Riparian Zone",
+      "Wetland Edge"
+    ]
+  },
+  {
+    "id": 34,
+    "species": "Baya Weaver",
+    "category": "Bird",
+    "expected_annual_frequency": 46.5,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Baya Weaver",
+    "areas": [
+      "Scrubland",
+      "Rocky Outcrop",
+      "Campus Grounds",
+      "Grassland Patch",
+      "Forest Trail North",
+      "Wetland Edge"
+    ]
+  },
+  {
+    "id": 35,
+    "species": "Scaly-breasted Munia",
+    "category": "Bird",
+    "expected_annual_frequency": 3.9,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Scaly-breasted Munia",
+    "areas": [
+      "Grassland Patch",
+      "Campus Grounds",
+      "Riparian Zone",
+      "Wetland Edge",
+      "Lake Shore",
+      "Rocky Outcrop"
+    ]
+  },
+  {
+    "id": 36,
+    "species": "Indian Silverbill",
+    "category": "Bird",
+    "expected_annual_frequency": 24.2,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Indian Silverbill",
+    "areas": [
+      "Campus Grounds",
+      "Wetland Edge",
+      "Urban Garden",
+      "Rocky Outcrop",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 37,
+    "species": "Bronze Mannikin",
+    "category": "Bird",
+    "expected_annual_frequency": 43.4,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Bronze Mannikin",
+    "areas": [
+      "Campus Grounds",
+      "Lake Shore",
+      "Agricultural Margin",
+      "Urban Garden",
+      "Grassland Patch",
+      "Scrubland"
+    ]
+  },
+  {
+    "id": 38,
+    "species": "Indian Grey Hornbill",
+    "category": "Bird",
+    "expected_annual_frequency": 47.6,
+    "conservation_status": "Vulnerable",
+    "fun_fact": "Interesting fact about Indian Grey Hornbill",
+    "areas": [
+      "Lake Shore",
+      "Riparian Zone",
+      "Urban Garden"
+    ]
+  },
+  {
+    "id": 39,
+    "species": "Indian Pond Heron",
+    "category": "Bird",
+    "expected_annual_frequency": 38.3,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Indian Pond Heron",
+    "areas": [
+      "Forest Trail North",
+      "Wetland Edge",
+      "Riparian Zone",
+      "Campus Grounds",
+      "Lake Shore",
+      "Scrubland"
+    ]
+  },
+  {
+    "id": 40,
+    "species": "Little Egret",
+    "category": "Bird",
+    "expected_annual_frequency": 32.8,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Little Egret",
+    "areas": [
+      "Campus Grounds",
+      "Rocky Outcrop"
+    ]
+  },
+  {
+    "id": 41,
+    "species": "Intermediate Egret",
+    "category": "Bird",
+    "expected_annual_frequency": 1.2,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Intermediate Egret",
+    "areas": [
+      "Grassland Patch",
+      "Agricultural Margin",
+      "Rocky Outcrop",
+      "Forest Trail North",
+      "Riparian Zone"
+    ]
+  },
+  {
+    "id": 42,
+    "species": "Great Egret",
+    "category": "Bird",
+    "expected_annual_frequency": 33.4,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Great Egret",
+    "areas": [
+      "Urban Garden",
+      "Wetland Edge",
+      "Riparian Zone",
+      "Agricultural Margin",
+      "Campus Grounds",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 43,
+    "species": "Painted Stork",
+    "category": "Bird",
+    "expected_annual_frequency": 25.1,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Painted Stork",
+    "areas": [
+      "Grassland Patch",
+      "Campus Grounds",
+      "Lake Shore",
+      "Urban Garden",
+      "Forest Trail North"
+    ]
+  },
+  {
+    "id": 44,
+    "species": "Asian Openbill",
+    "category": "Bird",
+    "expected_annual_frequency": 18.7,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Asian Openbill",
+    "areas": [
+      "Forest Trail North",
+      "Grassland Patch",
+      "Riparian Zone",
+      "Urban Garden",
+      "Wetland Edge",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 45,
+    "species": "Black-necked Stork",
+    "category": "Bird",
+    "expected_annual_frequency": 23.2,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Black-necked Stork",
+    "areas": [
+      "Riparian Zone",
+      "Urban Garden",
+      "Wetland Edge"
+    ]
+  },
+  {
+    "id": 46,
+    "species": "Eurasian Spoonbill",
+    "category": "Bird",
+    "expected_annual_frequency": 32.4,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Eurasian Spoonbill",
+    "areas": [
+      "Campus Grounds",
+      "Urban Garden",
+      "Wetland Edge"
+    ]
+  },
+  {
+    "id": 47,
+    "species": "Glossy Ibis",
+    "category": "Bird",
+    "expected_annual_frequency": 31.6,
+    "conservation_status": "Least Concern",
+    "fun_fact": "Interesting fact about Glossy Ibis",
+    "areas": [
+      "Wetland Edge",
+      "Agricultural Margin",
+      "Scrubland",
+      "Forest Trail North",
+      "Lake Shore"
+    ]
+  },
+  {
+    "id": 48,
+    "species": "Black-headed Ibis",
+    "category": "Bird",
+    "expected_annual_frequency": 47.3,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Black-headed Ibis",
+    "areas": [
+      "Grassland Patch",
+      "Wetland Edge"
+    ]
+  },
+  {
+    "id": 49,
+    "species": "Bar-headed Goose",
+    "category": "Bird",
+    "expected_annual_frequency": 13.7,
+    "conservation_status": "Common",
+    "fun_fact": "Interesting fact about Bar-headed Goose",
+    "areas": [
+      "Scrubland",
+      "Wetland Edge",
+      "Urban Garden",
+      "Lake Shore",
+      "Grassland Patch",
+      "Rocky Outcrop"
+    ]
+  },
+  {
+    "id": 50,
+    "species": "Lesser Whistling Duck",
+    "category": "Bird",
+    "expected_annual_frequency": 38.4,
+    "conservation_status": "Near Threatened",
+    "fun_fact": "Interesting fact about Lesser Whistling Duck",
+    "areas": [
+      "Forest Trail North",
+      "Urban Garden",
+      "Scrubland",
+      "Agricultural Margin",
+      "Campus Grounds"
+    ]
+  }
+]

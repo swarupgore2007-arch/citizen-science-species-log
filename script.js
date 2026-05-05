@@ -198,6 +198,7 @@ function dedupeSightings(items) {
   return Array.from(byId.values());
 }
 
+<<<<<<< HEAD
 async function saveSightings() {
   // Data is now saved to database via API calls
   // This function is kept for backward compatibility only
@@ -229,6 +230,21 @@ async function loadStoredSightings() {
     showToast('Failed to load sightings: ' + error.message, 'error');
     sightings = [];
   }
+=======
+function saveSightings() {
+  if (window.DM && DM.save) {
+    if (!DM.save(sightings)) showToast('Storage is full or unavailable.', 'error');
+  } else {
+    localStorage.setItem(storageKey, JSON.stringify(sightings));
+  }
+}
+
+function loadStoredSightings() {
+  const loaded = window.DM && DM.load ? DM.load() : JSON.parse(localStorage.getItem(storageKey) || '[]');
+  sightings = dedupeSightings(Array.isArray(loaded) ? loaded : []);
+  updateAllRarityProperties();
+  saveSightings();
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 function initializeFormOptions() {
@@ -647,6 +663,7 @@ function initializeRealMap() {
   L.control.scale().addTo(realMap);
 }
 
+<<<<<<< HEAD
 /* ── Auth helper — resolves current user's role ─────────── */
 function getAuthUserRole(userId) {
   // Get current user from Auth session
@@ -655,6 +672,17 @@ function getAuthUserRole(userId) {
     if (currentUser) return currentUser.role;
   }
   return 'user';
+=======
+/* ── Auth helper — resolves a userId to its role string ─────────── */
+function getAuthUserRole(userId) {
+  if (!userId) return 'user';
+  if (userId === 'samadhan-root') return 'super_admin';
+  try {
+    const users = JSON.parse(localStorage.getItem('biodiversity_users') || '[]');
+    const found = users.find((u) => u.userId === userId || u.id === userId);
+    return found ? found.role : 'user';
+  } catch { return 'user'; }
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 function markerPopup(sighting) {
@@ -757,16 +785,26 @@ function validateLocation() {
   return true;
 }
 
+<<<<<<< HEAD
 async function addSighting(event) {
+=======
+function addSighting(event) {
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
   event.preventDefault();
   const speciesName = els.speciesSelect.value;
   if (!speciesName || !els.dateInput.value || !validateLocation()) {
     showToast('Please complete species, date, and location.', 'error');
     return;
   }
+<<<<<<< HEAD
 
   const info = getSpeciesInfo(speciesName);
   const sightingData = {
+=======
+  const info = getSpeciesInfo(speciesName);
+  const entry = normalizeSighting({
+    id: window.DM ? DM.generateId(speciesName) : `${speciesName}-${Date.now()}`,
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
     species: speciesName,
     category: info.category,
     date: els.dateInput.value,
@@ -777,6 +815,7 @@ async function addSighting(event) {
     notes: els.notesInput.value.trim(),
     image: pendingImageData,
     favorite: Boolean(els.favoriteInput?.checked),
+<<<<<<< HEAD
     conservationStatus: info.conservation_status
   };
 
@@ -791,6 +830,18 @@ async function addSighting(event) {
     console.error('Failed to add sighting:', error);
     showToast('Failed to add sighting: ' + error.message, 'error');
   }
+=======
+    conservationStatus: info.conservation_status,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+  sightings.push(entry);
+  updateAllRarityProperties();
+  saveSightings();
+  resetForm();
+  refreshAll();
+  showToast('Sighting added to the biodiversity log.');
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 function openEditModal(id) {
@@ -814,7 +865,11 @@ function closeEditModal() {
   els.editModal.classList.remove('show');
 }
 
+<<<<<<< HEAD
 async function saveEdit(event) {
+=======
+function saveEdit(event) {
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
   event.preventDefault();
   const id = els.editSightingId.value;
   const current = sightings.find((item) => item.id === id);
@@ -822,9 +877,15 @@ async function saveEdit(event) {
     showToast('Edit form is missing required data.', 'error');
     return;
   }
+<<<<<<< HEAD
 
   const info = getSpeciesInfo(els.editSpecies.value);
   const updateData = {
+=======
+  const info = getSpeciesInfo(els.editSpecies.value);
+  sightings = sightings.map((item) => item.id === id ? {
+    ...item,
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
     species: els.editSpecies.value,
     category: info.category,
     conservationStatus: info.conservation_status,
@@ -833,6 +894,7 @@ async function saveEdit(event) {
     time: els.editTime?.value || '',
     notes: els.editNotes.value.trim(),
     favorite: Boolean(els.editFavorite?.checked),
+<<<<<<< HEAD
     image: editPendingImageData || current.image || ''
   };
 
@@ -850,6 +912,16 @@ async function saveEdit(event) {
     console.error('Failed to update sighting:', error);
     showToast('Failed to update sighting: ' + error.message, 'error');
   }
+=======
+    image: editPendingImageData || item.image || '',
+    updatedAt: new Date().toISOString()
+  } : item);
+  updateAllRarityProperties();
+  saveSightings();
+  closeEditModal();
+  refreshAll();
+  showToast('Sighting updated.');
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 function openDeleteModal(ids) {
@@ -866,6 +938,7 @@ function closeDeleteModal() {
   els.deleteModal.classList.remove('show');
 }
 
+<<<<<<< HEAD
 async function confirmDelete() {
   try {
     if (!window.DM) throw new Error('Data manager not available');
@@ -881,6 +954,16 @@ async function confirmDelete() {
     console.error('Failed to delete sightings:', error);
     showToast('Failed to delete sightings: ' + error.message, 'error');
   }
+=======
+function confirmDelete() {
+  const ids = new Set(deleteQueue);
+  sightings = sightings.filter((item) => !ids.has(item.id));
+  updateAllRarityProperties();
+  saveSightings();
+  closeDeleteModal();
+  refreshAll();
+  showToast('Sighting records deleted.');
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 function handleTableClick(event) {
@@ -890,6 +973,7 @@ function handleTableClick(event) {
   if (button.dataset.action === 'edit') openEditModal(id);
   if (button.dataset.action === 'delete') openDeleteModal(id);
   if (button.dataset.action === 'favorite') {
+<<<<<<< HEAD
     const sighting = sightings.find(item => item.id === id || item._id === id);
     if (sighting && window.DM) {
       const updateData = { favorite: !sighting.favorite };
@@ -903,6 +987,11 @@ function handleTableClick(event) {
         showToast('Failed to update favorite status: ' + error.message, 'error');
       });
     }
+=======
+    sightings = sightings.map((item) => item.id === id ? { ...item, favorite: !item.favorite, updatedAt: new Date().toISOString() } : item);
+    saveSightings();
+    refreshAll();
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
   }
 }
 
@@ -919,11 +1008,20 @@ function clearFilters() {
 }
 
 function resetAllData() {
+<<<<<<< HEAD
   if (!confirm('Are you sure you want to clear ALL your sightings from the database? This cannot be undone.')) {
     return;
   }
   
   showToast('Please delete sightings individually from the interface.', 'info');
+=======
+  const ok = window.DM && DM.clearAll ? DM.clearAll() : confirm('Clear all stored sightings?');
+  if (!ok) return;
+  localStorage.removeItem(storageKey);
+  sightings = [];
+  refreshAll();
+  showToast('All sightings cleared.');
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 function importBackup(file) {
@@ -972,7 +1070,11 @@ async function loadSpeciesDataset() {
     // Continue even if species file is missing
   }
   initializeFormOptions();
+<<<<<<< HEAD
   await loadStoredSightings(); // migrate + apply visibility
+=======
+  loadStoredSightings(); // migrate + apply visibility
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 }
 
 
@@ -1128,7 +1230,10 @@ async function loadSpeciesDataset() {
 
   speciesMap = new Map(speciesData.map((species) => [species.name, species]));
   initializeFormOptions();
+
   await loadStoredSightings();
+
+  loadStoredSightings(); 
   initializeRealMap();
   refreshAll();
 }
@@ -1793,6 +1898,7 @@ function authInit() {
   authRefreshAdminTools();
 }
 
+<<<<<<< HEAD
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   bindEvents();
@@ -1801,4 +1907,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Only load species+sightings after session is validated
   if (!currentAuthUser) return;
   await loadSpeciesDataset(); // fetch species JSON → loadStoredSightings → authApplyVisibility
+=======
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  bindEvents();
+  authInitBootstrap().then(() => {
+    authInit();
+    // Only load species+sightings after session is validated
+    if (!currentAuthUser) return;
+    loadSpeciesDataset(); // fetch species JSON → loadStoredSightings → authApplyVisibility
+  });
+>>>>>>> 52bbde8e09f8f3bf3bc630823a2edc34c85463ae
 });
