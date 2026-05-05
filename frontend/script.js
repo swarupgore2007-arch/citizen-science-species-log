@@ -1,6 +1,5 @@
 // Citizen Science Species Log - professional SDG 15 app controller.
 // The code keeps the original single-page architecture, but separates
-// persistence, rendering, filtering, charts, map, and modal behavior.
 
 const datasetUrl = 'species_baseline.json';
 const themeKey = 'citizenScienceTheme';
@@ -197,7 +196,7 @@ function normalizeSighting(raw) {
     rarityLabel: raw.rarityLabel || 'Insufficient Data',
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
-    // ── Ownership fields ─ MUST be preserved for role-based filtering ──
+    // ── Ownership fields ─ MUST be preserved for role-based filtering ── //
     userId: raw.userId?._id || raw.userId || '',
     username: raw.username || '',
     roleAtCreation: raw.roleAtCreation || raw.role || ''
@@ -215,22 +214,9 @@ function dedupeSightings(items) {
 }
 
 async function saveSightings() {
-}
-
-async function loadStoredSightings() {
-  try {
-    // If admin, load everything from the database
-    const loaded = Auth.isAdmin() 
-      ? await DM.getAllSightings() 
-      : await DM.load();
-      
-    sightings = dedupeSightings(Array.isArray(loaded) ? loaded : []);
-    updateAllRarityProperties();
-  } catch (error) {
-    console.error('Failed to load sightings:', error);
-    showToast('Session expired or server error. Please login.', 'error');
-    sightings = [];
-  }
+  // Data is now saved via API calls in addSighting and saveEdit
+  // This function is kept for compatibility but does nothing
+  console.log('saveSightings called - data saved via API');
 }
 
 function initializeFormOptions() {
@@ -778,7 +764,7 @@ async function addSighting(event) {
   };
 
   try {
-    if (DM && DM.addSighting) {
+    if (window.DM && DM.addSighting) {
       const savedSighting = await DM.addSighting(sightingData);
       sightings.push(normalizeSighting(savedSighting));
       updateAllRarityProperties();
@@ -838,7 +824,7 @@ async function saveEdit(event) {
   };
 
   try {
-    if (window.DM && DM.updateSighting) {
+    if (DM && DM.updateSighting) {
       const updatedSighting = await DM.updateSighting(id, updateData);
       const normalized = normalizeSighting(updatedSighting);
       sightings = sightings.map((item) =>
@@ -873,7 +859,7 @@ function closeDeleteModal() {
 
 async function confirmDelete() {
   try {
-    if (window.DM && DM.deleteSighting) {
+    if (DM && DM.deleteSighting) {
       for (const id of deleteQueue) {
         await DM.deleteSighting(id);
       }
@@ -901,7 +887,7 @@ function handleTableClick(event) {
     const sighting = sightings.find(item => item.id === id);
     if (sighting) {
       const updateData = { favorite: !sighting.favorite };
-      if (window.DM && DM.updateSighting) {
+      if (DM && DM.updateSighting) {
         DM.updateSighting(id, updateData).then(updated => {
           const normalized = normalizeSighting(updated);
           sightings = sightings.map((item) =>
@@ -930,7 +916,7 @@ function clearFilters() {
 }
 
 function resetAllData() {
-  showToast('Please delete sightings individually.', 'warning');
+  showToast('Please delete sightings individually from the interface.', 'info');
 }
 
 function importBackup(file) {
@@ -946,15 +932,15 @@ function importBackup(file) {
 }
 
 function exportJSON() {
-  if (window.DM) DM.exportJSON(sightings);
+  if (DM) DM.exportJSON(sightings);
 }
 
 function exportCSV() {
-  if (window.DM) DM.exportCSV(sightings);
+  if (DM) DM.exportCSV(sightings);
 }
 
 function exportPrint() {
-  if (window.DM) DM.exportPrintReport(sightings);
+  if (DM) DM.exportPrintReport(sightings);
 }
 
 function debounce(fn, delay) {
