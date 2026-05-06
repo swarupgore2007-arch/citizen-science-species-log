@@ -2,6 +2,7 @@
 // The code keeps the original single-page architecture, but separates
 
 const datasetUrl = 'species_baseline.json';
+const API_BASE = 'http://localhost:3001/api';
 const themeKey = 'citizenScienceTheme';
 
 const $ = (id) => document.getElementById(id);
@@ -211,6 +212,18 @@ function dedupeSightings(items) {
     byId.set(normalized.id, normalized);
   });
   return Array.from(byId.values());
+}
+
+async function loadStoredSightings() {
+  try {
+    if (window.DM && DM.load) {
+      const data = await DM.load(); // Fetches via /my-sightings endpoint
+      sightings = dedupeSightings(data);
+    }
+  } catch (err) {
+    console.error('Failed to load sightings:', err);
+    showToast('Failed to load sightings from server', 'error');
+  }
 }
 
 async function saveSightings() {

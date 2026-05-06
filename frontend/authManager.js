@@ -12,7 +12,7 @@
   // ──────────────────────────────────────────────────────────
   //  CONFIGURATION
   // ──────────────────────────────────────────────────────────
-  const API_BASE = 'http://localhost:3001/api/auth';
+  const API_BASE = 'http://localhost:3001/api';
   const TOKEN_KEY = 'token';
   const USER_KEY = 'currentUser';
 
@@ -30,13 +30,10 @@
     const token = localStorage.getItem(TOKEN_KEY);
     const defaultOptions = {
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
       }
     };
-
-    if (token) {
-      defaultOptions.headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const config = { ...defaultOptions, ...options };
     if (config.body && typeof config.body === 'object') {
@@ -81,7 +78,7 @@
   //  AUTH OPERATIONS
   // ──────────────────────────────────────────────────────────
   async function register(username, password, fullName) {
-    const response = await apiRequest('/register', {
+    const response = await apiRequest('/auth/register', {
       method: 'POST',
       body: { username, password, fullName }
     });
@@ -90,7 +87,7 @@
   }
 
   async function login(username, password) {
-    const response = await apiRequest('/login', {
+    const response = await apiRequest('/auth/login', {
       method: 'POST',
       body: { username, password }
     });

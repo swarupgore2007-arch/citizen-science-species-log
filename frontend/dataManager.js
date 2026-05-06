@@ -4,11 +4,12 @@
  * Manages all data operations via REST API backend.
  */
 
+const API_BASE = 'http://localhost:3001/api';
+
 window.DM = {
   // ──────────────────────────────────────────────────────────
   //  API CONFIGURATION
   // ──────────────────────────────────────────────────────────
-  apiBase: 'http://localhost:3001/api',
   tokenKey: 'token',
 
   // ──────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ window.DM = {
   //  Retrieves JWT token from localStorage
   // ──────────────────────────────────────────────────────────
   getToken() {
-    return localStorage.getItem(this.tokenKey);
+    return localStorage.getItem('token');
   },
 
   // ──────────────────────────────────────────────────────────
@@ -29,7 +30,7 @@ window.DM = {
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Bearer ${token}` : ''
+        'Authorization': 'Bearer ' + localStorage.getItem('token')
       }
     };
 
@@ -39,7 +40,7 @@ window.DM = {
     }
 
     try {
-      const response = await fetch(`${this.apiBase}${endpoint}`, config);
+      const response = await fetch(`${API_BASE}${endpoint}`, config);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
