@@ -14,7 +14,7 @@ window.DM = {
   //  Retrieves JWT token from localStorage
   // ──────────────────────────────────────────────────────────
   getToken() {
-    return localStorage.getItem('token');
+    return localStorage.getItem('token') || '';
   },
 
   // ──────────────────────────────────────────────────────────
@@ -27,7 +27,7 @@ window.DM = {
     const defaultOptions = {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + localStorage.getItem('token')
+        'Authorization': 'Bearer ' + this.getToken()
       }
     };
 

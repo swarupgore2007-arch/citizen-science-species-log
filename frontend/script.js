@@ -217,6 +217,7 @@ function dedupeSightings(items) {
 async function loadStoredSightings() {
   try {
     if (window.DM && DM.load) {
+      console.log(`[App] Fetching sightings from: ${window.API_BASE}/my-sightings`);
       const data = await DM.load(); // Fetches via /my-sightings endpoint
       sightings = dedupeSightings(data);
     }
