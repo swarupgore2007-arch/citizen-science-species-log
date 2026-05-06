@@ -3,9 +3,6 @@
  * =============================================
  * Manages all data operations via REST API backend.
  */
-
-const API_BASE = 'http://localhost:3001/api';
-
 window.DM = {
   // ──────────────────────────────────────────────────────────
   //  API CONFIGURATION
@@ -40,7 +37,7 @@ window.DM = {
     }
 
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, config);
+      const response = await fetch(`${window.API_BASE}${endpoint}`, config);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

@@ -12,7 +12,6 @@
   // ──────────────────────────────────────────────────────────
   //  CONFIGURATION
   // ──────────────────────────────────────────────────────────
-  const API_BASE = 'http://localhost:3001/api';
   const TOKEN_KEY = 'token';
   const USER_KEY = 'currentUser';
 
@@ -40,7 +39,7 @@
       config.body = JSON.stringify(config.body);
     }
 
-    const response = await fetch(`${API_BASE}${endpoint}`, config);
+    const response = await fetch(`${window.API_BASE}${endpoint}`, config);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
