@@ -37,6 +37,8 @@ async function getSightingsForUser(user) {
 // Get sightings for the logged-in user, or all sightings for super admin
 router.get('/sightings', authenticateToken, async (req, res) => {
   try {
+    console.log("REQ USER:", req.user);
+    console.log("ROLE:", req.user.role);
     const sightings = await getSightingsForUser(req.user);
     res.json({ sightings });
   } catch (error) {
