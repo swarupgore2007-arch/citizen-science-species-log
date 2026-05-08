@@ -74,21 +74,32 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       favorite,
       conservationStatus,
       rarityIndex,
-      rarityLabel
+      rarityLabel,
+      gpsUsed
     } = req.body;
 
     if (!species || !location || !lat || !lon || !date) {
       return res.status(400).json({ message: 'Required fields: species, location, lat, lon, date' });
     }
 
+    // Confidence Logic
+    // HIGH: GPS + Image | MEDIUM: GPS only OR Manual + Image | LOW: Manual + No Image
+    const hasImage = !!(image || req.body.imageProof);
+    const isGPS = !!gpsUsed;
+    let confidenceLevel = 'LOW';
+    if (isGPS && hasImage) confidenceLevel = 'HIGH';
+    else if (isGPS || hasImage) confidenceLevel = 'MEDIUM';
+
     const sighting = new Sighting({
       userId: req.user.id,
       username: req.user.username,
       species,
       category: category || 'Other',
-      location,
+      location, // Stored as readable location name
       lat: parseFloat(lat),
-      lon: parseFloat(lon),
+      lon: parseFloat(lon), // lat/lon stored as GPS coordinates
+      gpsUsed: isGPS,
+      confidenceLevel,
       date,
       time: time || '',
       notes: notes || '',

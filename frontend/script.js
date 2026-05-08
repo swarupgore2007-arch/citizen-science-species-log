@@ -471,21 +471,41 @@ function renderSightingsTable() {
   filtered.forEach((sighting) => {
     const rarity = getRarityInfo(sighting.species);
     const statusColor = { pending: '#eab308', verified: '#22c55e', rejected: '#ef4444' }[sighting.verificationStatus];
+    const confColor = { HIGH: '#22c55e', MEDIUM: '#eab308', LOW: '#ef4444' }[sighting.confidenceLevel];
     
     const row = document.createElement('tr');
     row.className = sighting.favorite ? 'favorite-row' : '';
     row.innerHTML = `
       <td><input type="checkbox" class="row-select" data-id="${escapeHTML(sighting.id)}" aria-label="Select ${escapeHTML(sighting.species)}" /></td>
-      <td><img class="table-thumb" src="${escapeHTML(imageForSighting(sighting))}" alt="${escapeHTML(sighting.species)} photo" loading="lazy" data-species-image="true" /></td>
-      <td><strong>${escapeHTML(sighting.species)}</strong><br><small>By: ${escapeHTML(sighting.username)}</small></td>
-      <td><span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span></td>
-      <td>${escapeHTML(sighting.location)}</td>
-      <td>${escapeHTML(sighting.date)}${sighting.time ? `<br><small>${escapeHTML(sighting.time)}</small>` : ''}</td>
       <td>
-        <span class="badge ${rarity.className}">${escapeHTML(rarity.label)}</span><br>
+        <div class="admin-image-review">
+          <img class="table-thumb enlargeable" src="${escapeHTML(imageForSighting(sighting))}" 
+               alt="${escapeHTML(sighting.species)}" onclick="window.open(this.src, '_blank')" 
+               style="cursor:zoom-in" title="Click to enlarge" />
+        </div>
+      </td>
+      <td>
+        <strong>${escapeHTML(sighting.species)}</strong><br>
+        <small>User: ${escapeHTML(sighting.username)} (ID: ${escapeHTML(sighting.userId.substring(0,8))}...)</small>
+      </td>
+      <td><span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span></td>
+      <td>
+        ${escapeHTML(sighting.location)}<br>
+        <small style="color:var(--text-muted)">📍 ${sighting.lat.toFixed(4)}, ${sighting.lon.toFixed(4)}</small>
+        ${!sighting.gpsUsed ? '<br><span class="badge badge-insufficient" style="font-size:10px">⚠️ Manual Location</span>' : '<br><span class="badge badge-normal" style="font-size:10px">✅ GPS Verified</span>'}
+      </td>
+      <td>
+        <small>${escapeHTML(new Date(sighting.createdAt).toLocaleString())}</small>
+      </td>
+      <td>
+        <div class="confidence-tag" style="border-left: 3px solid ${confColor}; padding-left:5px">
+          <strong style="color:${confColor}">${sighting.confidenceLevel}</strong><br>
+          <small>${escapeHTML(rarity.label)}</small>
+        </div>
+      </td>
+      <td>
         <span class="status-badge" style="color:${statusColor}; font-weight:bold; font-size:0.75rem">● ${sighting.verificationStatus.toUpperCase()}</span>
       </td>
-      <td>${escapeHTML(sighting.notes || '-')}</td>
       <td class="table-actions">
         ${isSuperAdmin && sighting.verificationStatus === 'pending' ? `
           <button class="btn btn-secondary small verify-btn" data-action="verify" data-id="${escapeHTML(sighting.id)}">Verify</button>
