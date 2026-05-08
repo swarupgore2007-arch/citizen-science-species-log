@@ -22,11 +22,33 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// Get user's sightings
+async function getSightingsForUser(user) {
+  // Requirement 7: Admin visibility depends ONLY on super_admin role
+  // Requirement 3 & 5: Return ALL sightings for admin (handles missing userId/old schema)
+  if (user.role === 'super_admin') {
+    return Sighting.find({})
+      .sort({ createdAt: -1 });
+  }
+
+  // For normal users, filter the results to only include sightings they created.
+  return Sighting.find({ userId: user.id }).sort({ createdAt: -1 });
+}
+
+// Get sightings for the logged-in user, or all sightings for super admin
+router.get('/sightings', authenticateToken, async (req, res) => {
+  try {
+    const sightings = await getSightingsForUser(req.user);
+    res.json({ sightings });
+  } catch (error) {
+    console.error('Get sightings error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Backward-compatible endpoint used by the current frontend
 router.get('/my-sightings', authenticateToken, async (req, res) => {
   try {
-    const sightings = await Sighting.find({ userId: req.user.id })
-      .sort({ createdAt: -1 });
+    const sightings = await getSightingsForUser(req.user);
     res.json({ sightings });
   } catch (error) {
     console.error('Get sightings error:', error);
@@ -90,10 +112,12 @@ router.post('/sightings', authenticateToken, async (req, res) => {
 // Update sighting
 router.put('/sightings/:id', authenticateToken, async (req, res) => {
   try {
-    const sighting = await Sighting.findOne({
-      _id: req.params.id,
-      userId: req.user.id
-    });
+    // Find sighting: admins can find any, users only their own
+    const query = (req.user.role === 'super_admin') 
+      ? { _id: req.params.id } 
+      : { _id: req.params.id, userId: req.user.id };
+
+    const sighting = await Sighting.findOne(query);
 
     if (!sighting) {
       return res.status(404).json({ message: 'Sighting not found' });
@@ -124,10 +148,12 @@ router.put('/sightings/:id', authenticateToken, async (req, res) => {
 // Delete sighting
 router.delete('/sightings/:id', authenticateToken, async (req, res) => {
   try {
-    const sighting = await Sighting.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user.id
-    });
+    // Admin visibility logic for deletion
+    const query = (req.user.role === 'super_admin') 
+      ? { _id: req.params.id } 
+      : { _id: req.params.id, userId: req.user.id };
+
+    const sighting = await Sighting.findOneAndDelete(query);
 
     if (!sighting) {
       return res.status(404).json({ message: 'Sighting not found' });
@@ -143,7 +169,8 @@ router.delete('/sightings/:id', authenticateToken, async (req, res) => {
 // Get all sightings (admin only)
 router.get('/all-sightings', authenticateToken, async (req, res) => {
   try {
-    if (req.user.role !== 'admin' && req.user.role !== 'super_admin') {
+    // Requirement 7: Depend ONLY on super_admin
+    if (req.user.role !== 'super_admin') {
       return res.status(403).json({ message: 'Admin access required' });
     }
 
@@ -153,20 +180,6 @@ router.get('/all-sightings', authenticateToken, async (req, res) => {
     res.json({ sightings });
   } catch (error) {
     console.error('Get all sightings error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get species baseline data (public)
-router.get('/species-baseline', async (req, res) => {
-  try {
-    // This would typically come from a separate collection or file
-    // For now, return a message that frontend should load from local file
-    res.json({
-      message: 'Species baseline data should be loaded from species_baseline.json'
-    });
-  } catch (error) {
-    console.error('Species baseline error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
