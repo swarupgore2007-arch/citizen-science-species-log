@@ -2,7 +2,7 @@
 // The code keeps the original single-page architecture, but separates
 
 const datasetUrl = 'species_baseline.json';
-window.API_BASE = "https://citizen-science-species-log.onrender.com/";
+window.API_BASE = "https://citizen-science-species-log.onrender.com/api";
 const themeKey = 'citizenScienceTheme';
 
 const $ = (id) => document.getElementById(id);
