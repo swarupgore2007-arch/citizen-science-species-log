@@ -199,6 +199,7 @@ function normalizeSighting(raw) {
     rarityLabel: raw.rarityLabel || 'Insufficient Data',
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
+    verificationStatus: raw.verificationStatus || 'pending',
     // ── Ownership fields ─ MUST be preserved for role-based filtering ── //
     userId: raw.userId?._id || raw.userId || '',
     username: raw.username || '',
@@ -459,6 +460,8 @@ async function hydrateSpeciesImages(root = document) {
 function renderSightingsTable() {
   const filtered = getFilteredSightings();
   els.tableBody.innerHTML = '';
+  const currentUser = Auth.getCurrentUser();
+  const isSuperAdmin = currentUser && currentUser.role === 'super_admin';
 
   if (!filtered.length) {
     els.tableBody.innerHTML = '<tr><td colspan="9" class="empty-state">No sightings match the current filters.</td></tr>';
@@ -467,18 +470,27 @@ function renderSightingsTable() {
 
   filtered.forEach((sighting) => {
     const rarity = getRarityInfo(sighting.species);
+    const statusColor = { pending: '#eab308', verified: '#22c55e', rejected: '#ef4444' }[sighting.verificationStatus];
+    
     const row = document.createElement('tr');
     row.className = sighting.favorite ? 'favorite-row' : '';
     row.innerHTML = `
       <td><input type="checkbox" class="row-select" data-id="${escapeHTML(sighting.id)}" aria-label="Select ${escapeHTML(sighting.species)}" /></td>
-      <td><img class="table-thumb" src="${escapeHTML(imageForSighting(sighting))}" alt="${escapeHTML(sighting.species)} photo" loading="lazy" data-species-image="true" data-sighting-id="${escapeHTML(sighting.id)}" data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}" /></td>
-      <td><strong>${escapeHTML(sighting.species)}</strong>${sighting.favorite ? '<span class="favorite-mark">Favorite</span>' : ''}</td>
+      <td><img class="table-thumb" src="${escapeHTML(imageForSighting(sighting))}" alt="${escapeHTML(sighting.species)} photo" loading="lazy" data-species-image="true" /></td>
+      <td><strong>${escapeHTML(sighting.species)}</strong><br><small>By: ${escapeHTML(sighting.username)}</small></td>
       <td><span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span></td>
       <td>${escapeHTML(sighting.location)}</td>
       <td>${escapeHTML(sighting.date)}${sighting.time ? `<br><small>${escapeHTML(sighting.time)}</small>` : ''}</td>
-      <td><span class="badge ${rarity.className}">${escapeHTML(rarity.label)}</span><br><small>${escapeHTML(sighting.conservationStatus)}</small></td>
+      <td>
+        <span class="badge ${rarity.className}">${escapeHTML(rarity.label)}</span><br>
+        <span class="status-badge" style="color:${statusColor}; font-weight:bold; font-size:0.75rem">● ${sighting.verificationStatus.toUpperCase()}</span>
+      </td>
       <td>${escapeHTML(sighting.notes || '-')}</td>
       <td class="table-actions">
+        ${isSuperAdmin && sighting.verificationStatus === 'pending' ? `
+          <button class="btn btn-secondary small verify-btn" data-action="verify" data-id="${escapeHTML(sighting.id)}">Verify</button>
+          <button class="btn btn-danger small reject-btn" data-action="reject" data-id="${escapeHTML(sighting.id)}">Reject</button>
+        ` : ''}
         <button class="btn btn-secondary small" data-action="favorite" data-id="${escapeHTML(sighting.id)}">${sighting.favorite ? 'Unfavorite' : 'Favorite'}</button>
         <button class="btn btn-secondary small" data-action="edit" data-id="${escapeHTML(sighting.id)}">Edit</button>
         <button class="btn btn-danger small" data-action="delete" data-id="${escapeHTML(sighting.id)}">Delete</button>
@@ -490,21 +502,24 @@ function renderSightingsTable() {
 }
 
 function updateDashboard() {
-  const unique = new Set(sightings.map((item) => item.species));
-  const locationCounts = sightings.reduce((acc, s) => {
+  // Requirement 6: Filter for verified sightings only for analytics
+  const verifiedOnly = sightings.filter(s => s.verificationStatus === 'verified');
+  
+  const unique = new Set(verifiedOnly.map((item) => item.species));
+  const locationCounts = verifiedOnly.reduce((acc, s) => {
     acc[s.location] = (acc[s.location] || 0) + 1;
     return acc;
   }, {});
-  const speciesCounts = getSpeciesCounts();
+  const speciesCounts = verifiedOnly.reduce((acc, s) => { acc[s.species] = (acc[s.species] || 0) + 1; return acc; }, {});
   const topLocation = Object.entries(locationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
-  const rareTotal = sightings.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
-  const endangeredTotal = sightings.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
-  const topSpeciesCount = Math.max(...Object.values(speciesCounts), 0);
-  const score = sightings.length
-    ? Math.min(100, Math.round((unique.size / Math.max(sightings.length, 1)) * 55 + (endangeredTotal / sightings.length) * 25 + (rareTotal / sightings.length) * 20))
+  const rareTotal = verifiedOnly.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
+  const endangeredTotal = verifiedOnly.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
+  
+  const score = verifiedOnly.length
+    ? Math.min(100, Math.round((unique.size / Math.max(verifiedOnly.length, 1)) * 55 + (endangeredTotal / verifiedOnly.length) * 25 + (rareTotal / verifiedOnly.length) * 20))
     : 0;
 
-  els.totalSightings.textContent = sightings.length;
+  els.totalSightings.textContent = verifiedOnly.length;
   els.uniqueSpecies.textContent = unique.size;
   els.commonLocation.textContent = topLocation;
   els.rareCount.textContent = rareTotal;
@@ -688,7 +703,8 @@ function renderMapMarkers() {
   if (!realMap || !markerLayer || !hotspotLayer) return;
   markerLayer.clearLayers();
   hotspotLayer.clearLayers();
-  const filtered = getFilteredSightings();
+  // Requirement 6: Trusted sightings only on the map
+  const filtered = getFilteredSightings().filter(s => s.verificationStatus === 'verified');
   const bounds = [];
 
   filtered.forEach((sighting) => {
@@ -899,6 +915,20 @@ function handleTableClick(event) {
   const id = button.dataset.id;
   if (button.dataset.action === 'edit') openEditModal(id);
   if (button.dataset.action === 'delete') openDeleteModal(id);
+  
+  if (button.dataset.action === 'verify') {
+    DM.verifySighting(id).then(() => {
+      showToast('Sighting verified successfully');
+      loadStoredSightings().then(refreshAll);
+    }).catch(err => showToast(err.message, 'error'));
+  }
+  if (button.dataset.action === 'reject') {
+    DM.rejectSighting(id).then(() => {
+      showToast('Sighting rejected');
+      loadStoredSightings().then(refreshAll);
+    }).catch(err => showToast(err.message, 'error'));
+  }
+
   if (button.dataset.action === 'favorite') {
     const sighting = sightings.find(item => item.id === id);
     if (sighting) {

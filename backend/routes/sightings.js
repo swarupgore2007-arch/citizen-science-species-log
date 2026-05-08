@@ -97,7 +97,12 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       conservationStatus: conservationStatus || 'Unknown',
       rarityIndex: rarityIndex || 0,
       rarityLabel: rarityLabel || 'Insufficient Data',
-      roleAtCreation: req.user.role
+      roleAtCreation: req.user.role,
+      // Requirement: Default status is 'pending'
+      verificationStatus: 'pending',
+      imageProof: image || '',
+      verifiedBy: null,
+      verifiedAt: null
     });
 
     await sighting.save();
@@ -186,6 +191,58 @@ router.get('/all-sightings', authenticateToken, async (req, res) => {
   }
 });
 
+// GET: /api/admin/pending-sightings (super_admin only)
+router.get('/admin/pending-sightings', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Super Admin access required' });
+    }
+    const sightings = await Sighting.find({ verificationStatus: 'pending' })
+      .sort({ createdAt: -1 });
+    res.json({ sightings });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PATCH: /api/admin/verify/:id (super_admin only)
+router.patch('/admin/verify/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Super Admin access required' });
+    }
+    const sighting = await Sighting.findByIdAndUpdate(
+      req.params.id,
+      { 
+        verificationStatus: 'verified', 
+        verifiedBy: req.user.id, 
+        verifiedAt: new Date() 
+      },
+      { new: true }
+    );
+    res.json({ message: 'Sighting verified', sighting });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// PATCH: /api/admin/reject/:id (super_admin only)
+router.patch('/admin/reject/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Super Admin access required' });
+    }
+    const sighting = await Sighting.findByIdAndUpdate(
+      req.params.id,
+      { verificationStatus: 'rejected' },
+      { new: true }
+    );
+    res.json({ message: 'Sighting rejected', sighting });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Get endangered species alerts (super_admin only)
 router.get('/admin/endangered-alerts', authenticateToken, async (req, res) => {
   try {
@@ -195,6 +252,10 @@ router.get('/admin/endangered-alerts', authenticateToken, async (req, res) => {
     }
 
     const alerts = await Sighting.aggregate([
+      {
+        // Requirement 6: Only verified sightings affect analysis
+        $match: { verificationStatus: "verified" }
+      },
       {
         // Group by species and find the latest sighting date
         $group: {

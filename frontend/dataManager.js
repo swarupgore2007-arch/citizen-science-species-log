@@ -218,5 +218,21 @@ window.DM = {
       console.error('[DM] Get endangered alerts failed:', error);
       throw error;
     }
+  },
+
+  async getPendingSightings() {
+    return this.apiRequest('/admin/pending-sightings');
+  },
+
+  async verifySighting(id) {
+    return this.apiRequest(`/admin/verify/${id}`, {
+      method: 'PATCH'
+    });
+  },
+
+  async rejectSighting(id) {
+    return this.apiRequest(`/admin/reject/${id}`, {
+      method: 'PATCH'
+    });
   }
 };
