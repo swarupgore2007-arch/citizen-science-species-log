@@ -186,4 +186,64 @@ router.get('/all-sightings', authenticateToken, async (req, res) => {
   }
 });
 
+// Get endangered species alerts (super_admin only)
+router.get('/admin/endangered-alerts', authenticateToken, async (req, res) => {
+  try {
+    // Requirement: Accessible ONLY to super_admin
+    if (req.user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Super Admin access required' });
+    }
+
+    const alerts = await Sighting.aggregate([
+      {
+        // Group by species and find the latest sighting date
+        $group: {
+          _id: "$species",
+          lastSeenAt: { $max: "$createdAt" }
+        }
+      },
+      {
+        // Calculate days since last sighting
+        $addFields: {
+          daysSinceLastSighting: {
+            $floor: {
+              $divide: [
+                { $subtract: [new Date(), "$lastSeenAt"] },
+                1000 * 60 * 60 * 24
+              ]
+            }
+          }
+        }
+      },
+      {
+        // Filter for species not seen in at least 30 days
+        $match: {
+          daysSinceLastSighting: { $gte: 30 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          species: "$_id",
+          lastSeen: { $dateToString: { format: "%Y-%m-%d", date: "$lastSeenAt" } },
+          daysSinceLastSighting: 1,
+          alertLevel: {
+            $cond: {
+              if: { $gte: ["$daysSinceLastSighting", 90] },
+              then: "Possible endangered species",
+              else: "Low activity"
+            }
+          }
+        }
+      },
+      { $sort: { daysSinceLastSighting: -1 } }
+    ]);
+
+    res.json(alerts);
+  } catch (error) {
+    console.error('Endangered alerts error:', error);
+    res.status(500).json({ message: 'Server error fetching alerts' });
+  }
+});
+
 module.exports = router;

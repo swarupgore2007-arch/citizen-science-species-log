@@ -205,5 +205,18 @@ window.DM = {
     link.download = `sightings-${new Date().toISOString().slice(0, 10)}.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  },
+
+  // ──────────────────────────────────────────────────────────
+  //  GET ENDANGERED ALERTS (SUPER ADMIN ONLY)
+  // ──────────────────────────────────────────────────────────
+  async getEndangeredAlerts() {
+    try {
+      const response = await this.apiRequest('/admin/endangered-alerts');
+      return response || [];
+    } catch (error) {
+      console.error('[DM] Get endangered alerts failed:', error);
+      throw error;
+    }
   }
 };

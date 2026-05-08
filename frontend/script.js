@@ -75,7 +75,9 @@ const els = {
   deleteModalClose: $('deleteModalClose'),
   cancelDeleteBtn: $('cancelDeleteBtn'),
   confirmDeleteBtn: $('confirmDeleteBtn'),
-  deleteModalMessage: $('deleteModalMessage')
+  deleteModalMessage: $('deleteModalMessage'),
+  endangeredAlertsSection: $('endangeredAlertsSection'),
+  endangeredAlertsGrid: $('endangeredAlertsGrid')
 };
 
 // Extend UI elements for Authentication
@@ -727,6 +729,7 @@ function refreshAll() {
   renderSpeciesGallery();
   updateCharts();
   renderMapMarkers();
+  updateEndangeredAlerts();
 }
 
 function resetForm() {
