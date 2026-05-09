@@ -353,7 +353,7 @@ function placeholderFor(category) {
 
 function imageForSighting(sighting, type = 'species') {
   if (type === 'evidence') {
-    return sighting.evidenceImage || '';
+    return sighting.evidenceImage || 'https://placehold.co/100x100/64748b/ffffff?text=No+Evidence';
   }
   return sighting.speciesImage || placeholderFor(sighting.category);
 }
@@ -401,8 +401,16 @@ async function fetchWikimediaThumbnail(searchName) {
 }
 
 async function getSpeciesImageUrl(sighting) {
-  if (sighting.speciesImage) return sighting.speciesImage;
-  const cached = sighting.speciesImage;
+  // Requirement 5: If we already have a real URL (not a placeholder), use it
+  if (sighting.speciesImage && !sighting.speciesImage.includes('placehold.co')) return sighting.speciesImage;
+  
+  // Check memory/local cache before fetching
+  if (memoryImageCache.has(sighting.species)) return memoryImageCache.get(sighting.species);
+  const cached = window.DM && DM.getCachedImage ? DM.getCachedImage(sighting.species) : '';
+  if (cached) {
+    memoryImageCache.set(sighting.species, cached);
+    return cached;
+  }
 
   for (const searchName of speciesSearchNames(sighting.species)) {
     try {
@@ -472,8 +480,11 @@ function renderSightingsTable() {
       <td><input type="checkbox" class="row-select" data-id="${escapeHTML(sighting.id)}" aria-label="Select ${escapeHTML(sighting.species)}" /></td>
       <td>
         <div class="admin-image-review">
-          <img class="table-thumb enlargeable" src="${escapeHTML(imageForSighting(sighting, 'evidence') || imageForSighting(sighting, 'species'))}" 
-               alt="${escapeHTML(sighting.species)}" onclick="window.open(this.src, '_blank')" 
+          <img class="table-thumb enlargeable" src="${escapeHTML(imageForSighting(sighting, 'evidence'))}" 
+               alt="${escapeHTML(sighting.species)}" 
+               data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
+               data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}"
+               onclick="window.open(this.src, '_blank')" 
                style="cursor:zoom-in" title="Click to enlarge" />
         </div>
       </td>
@@ -559,7 +570,10 @@ function renderSpeciesGallery() {
     const rarity = getRarityInfo(sighting.species);
     return `
       <article class="species-card">
-        <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" data-sighting-id="${escapeHTML(sighting.id)}" loading="lazy">
+        <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" 
+             data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
+             data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}" 
+             loading="lazy">
         <div class="species-card-body">
           <div class="species-card-top">
             <span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span>
@@ -690,7 +704,9 @@ function markerPopup(sighting) {
   const roleBadge = isSightingFromAdmin(sighting) ? `<span class="badge badge-normal" style="margin-left:5px">Admin</span>` : '';
   return `
     <div class="popup-card" id="popup-${escapeHTML(sighting.id)}">
-      <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" class="popup-image" data-sighting-id="${escapeHTML(sighting.id)}">
+      <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" class="popup-image" 
+           data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
+           data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}">
       <div class="popup-main">
         <span class="popup-kicker">${escapeHTML(sighting.category)} observation</span>
         <h3>${escapeHTML(sighting.species)}</h3>
