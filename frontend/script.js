@@ -828,7 +828,7 @@ async function addSighting(event) {
     evidenceImage: pendingImageData,
     favorite: Boolean(els.favoriteInput?.checked),
     conservationStatus: info.conservation_status,
-    gpsUsed: !!selectedLocation.isGPS
+    isGPS: !!selectedLocation.isGPS
   };
 
   try {

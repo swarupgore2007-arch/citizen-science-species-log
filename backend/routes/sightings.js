@@ -81,7 +81,7 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       conservationStatus,
       rarityIndex,
       rarityLabel,
-      gpsUsed,
+      isGPS,
       confidenceLevel,
       verificationStatus
     } = req.body;
@@ -91,12 +91,14 @@ router.post('/sightings', authenticateToken, async (req, res) => {
     }
 
     // Automated Confidence Logic if not explicitly provided by client
+    const hasImage = !!evidenceImage;
+    const finalIsGPS = !!isGPS;
+
     let calcConfidence = confidenceLevel || 'LOW';
     if (!confidenceLevel) {
-      const hasImage = !!evidenceImage;
-      const isGPS = !!gpsUsed;
-      if (isGPS && hasImage) calcConfidence = 'HIGH';
-      else if (isGPS || hasImage) calcConfidence = 'MEDIUM';
+      if (finalIsGPS && hasImage) calcConfidence = 'HIGH';
+      else if (finalIsGPS || hasImage) calcConfidence = 'MEDIUM';
+      else calcConfidence = 'LOW';
     }
 
     const sighting = new Sighting({
@@ -109,7 +111,7 @@ router.post('/sightings', authenticateToken, async (req, res) => {
         lat: parseFloat(coordinates.lat),
         lng: parseFloat(coordinates.lng)
       },
-      gpsUsed: isGPS,
+      gpsUsed: finalIsGPS,
       confidenceLevel: calcConfidence,
       date,
       time: time || '',
