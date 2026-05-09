@@ -192,7 +192,8 @@ function normalizeSighting(raw) {
     lon: lng,
     location: raw.locationName || raw.location,
     notes: raw.notes || '',
-    image: raw.imageProof || raw.image || '',
+    speciesImage: raw.speciesImage || '',
+    evidenceImage: raw.evidenceImage || raw.imageProof || raw.image || '',
     favorite: Boolean(raw.favorite),
     conservationStatus: raw.conservationStatus || info.conservation_status || 'Unknown',
     rarityIndex: Number(raw.rarityIndex) || 0,
@@ -350,15 +351,11 @@ function placeholderFor(category) {
   return `https://placehold.co/640x420/${color}/ffffff?text=${encodeURIComponent(category || 'Wildlife')}`;
 }
 
-function imageForSighting(sighting) {
-  if (sighting.image) return sighting.image;
-  if (memoryImageCache.has(sighting.species)) return memoryImageCache.get(sighting.species);
-  const cached = window.DM && DM.getCachedImage ? DM.getCachedImage(sighting.species) : '';
-  if (cached) {
-    memoryImageCache.set(sighting.species, cached);
-    return cached;
+function imageForSighting(sighting, type = 'species') {
+  if (type === 'evidence') {
+    return sighting.evidenceImage || '';
   }
-  return placeholderFor(sighting.category);
+  return sighting.speciesImage || placeholderFor(sighting.category);
 }
 
 function speciesSearchNames(speciesName) {
@@ -404,9 +401,8 @@ async function fetchWikimediaThumbnail(searchName) {
 }
 
 async function getSpeciesImageUrl(sighting) {
-  if (sighting.image) return sighting.image;
-  const cached = imageForSighting(sighting);
-  if (cached && !cached.includes('placehold.co')) return cached;
+  if (sighting.speciesImage) return sighting.speciesImage;
+  const cached = sighting.speciesImage;
 
   for (const searchName of speciesSearchNames(sighting.species)) {
     try {
@@ -441,12 +437,13 @@ async function getSpeciesImageUrl(sighting) {
 }
 
 async function hydrateSpeciesImages(root = document) {
-  const images = Array.from(root.querySelectorAll('img[data-species-image="true"]'));
+  const images = Array.from(root.querySelectorAll('img[data-hydrate="true"]'));
   await Promise.all(images.map(async (img) => {
     const sighting = sightings.find((item) => item.id === img.dataset.sightingId) || {
       species: img.dataset.species,
       category: img.dataset.category,
-      image: ''
+      speciesImage: '',
+      evidenceImage: ''
     };
     const url = await getSpeciesImageUrl(sighting);
     if (url && img.src !== url) img.src = url;
@@ -475,7 +472,7 @@ function renderSightingsTable() {
       <td><input type="checkbox" class="row-select" data-id="${escapeHTML(sighting.id)}" aria-label="Select ${escapeHTML(sighting.species)}" /></td>
       <td>
         <div class="admin-image-review">
-          <img class="table-thumb enlargeable" src="${escapeHTML(imageForSighting(sighting))}" 
+          <img class="table-thumb enlargeable" src="${escapeHTML(imageForSighting(sighting, 'evidence') || imageForSighting(sighting, 'species'))}" 
                alt="${escapeHTML(sighting.species)}" onclick="window.open(this.src, '_blank')" 
                style="cursor:zoom-in" title="Click to enlarge" />
         </div>
@@ -562,7 +559,7 @@ function renderSpeciesGallery() {
     const rarity = getRarityInfo(sighting.species);
     return `
       <article class="species-card">
-        <img src="${escapeHTML(imageForSighting(sighting))}" alt="${escapeHTML(sighting.species)}" data-species-image="true" data-sighting-id="${escapeHTML(sighting.id)}" data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}" loading="lazy">
+        <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" data-sighting-id="${escapeHTML(sighting.id)}" loading="lazy">
         <div class="species-card-body">
           <div class="species-card-top">
             <span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span>
@@ -693,7 +690,7 @@ function markerPopup(sighting) {
   const roleBadge = isSightingFromAdmin(sighting) ? `<span class="badge badge-normal" style="margin-left:5px">Admin</span>` : '';
   return `
     <div class="popup-card" id="popup-${escapeHTML(sighting.id)}">
-      <img src="${escapeHTML(imageForSighting(sighting))}" alt="${escapeHTML(sighting.species)}" class="popup-image" data-species-image="true" data-sighting-id="${escapeHTML(sighting.id)}" data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}">
+      <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" class="popup-image" data-sighting-id="${escapeHTML(sighting.id)}">
       <div class="popup-main">
         <span class="popup-kicker">${escapeHTML(sighting.category)} observation</span>
         <h3>${escapeHTML(sighting.species)}</h3>
@@ -797,6 +794,9 @@ async function addSighting(event) {
   }
 
   const info = getSpeciesInfo(speciesName);
+  // Requirement: Pre-fetch educational image to store in the DB record
+  const speciesImageUrl = await getSpeciesImageUrl({ species: speciesName, category: info.category });
+
   const sightingData = {
     species: speciesName,
     category: info.category,
@@ -808,7 +808,8 @@ async function addSighting(event) {
       lng: selectedLocation.lon
     },
     notes: els.notesInput.value.trim(),
-    imageProof: pendingImageData,
+    speciesImage: speciesImageUrl,
+    evidenceImage: pendingImageData,
     favorite: Boolean(els.favoriteInput?.checked),
     conservationStatus: info.conservation_status,
     gpsUsed: !!selectedLocation.isGPS
@@ -838,8 +839,8 @@ function openEditModal(id) {
   els.editNotes.value = sighting.notes || '';
   if (els.editFavorite) els.editFavorite.checked = Boolean(sighting.favorite);
   editPendingImageData = '';
-  if (els.editImagePreview) els.editImagePreview.src = sighting.image || '';
-  if (els.editImagePreviewWrapper) els.editImagePreviewWrapper.style.display = sighting.image ? 'block' : 'none';
+  if (els.editImagePreview) els.editImagePreview.src = sighting.evidenceImage || sighting.speciesImage || '';
+  if (els.editImagePreviewWrapper) els.editImagePreviewWrapper.style.display = (sighting.evidenceImage || sighting.speciesImage) ? 'block' : 'none';
   els.editModal.classList.add('show');
 }
 
@@ -866,7 +867,8 @@ async function saveEdit(event) {
     time: els.editTime?.value || '',
     notes: els.editNotes.value.trim(),
     favorite: Boolean(els.editFavorite?.checked),
-    imageProof: editPendingImageData || current.image || ''
+    speciesImage: current.speciesImage,
+    evidenceImage: editPendingImageData || current.evidenceImage || ''
   };
 
   try {

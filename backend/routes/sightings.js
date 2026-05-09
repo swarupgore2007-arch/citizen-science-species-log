@@ -68,8 +68,9 @@ router.get('/my-sightings', authenticateToken, async (req, res) => {
 router.post('/sightings', authenticateToken, async (req, res) => {
   try {
     const { 
-      species, 
-      imageProof, 
+      species,
+      speciesImage,
+      evidenceImage,
       locationName, 
       coordinates, 
       category,
@@ -80,19 +81,23 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       conservationStatus,
       rarityIndex,
       rarityLabel,
-      gpsUsed 
+      gpsUsed,
+      confidenceLevel,
+      verificationStatus
     } = req.body;
 
     if (!species || !locationName || !coordinates || !coordinates.lat || !coordinates.lng || !date) {
       return res.status(400).json({ message: 'Required fields: species, locationName, coordinates (lat/lng), date' });
     }
 
-    // Confidence Logic
-    const hasImage = !!imageProof;
-    const isGPS = !!gpsUsed;
-    let confidenceLevel = 'LOW';
-    if (isGPS && hasImage) confidenceLevel = 'HIGH';
-    else if (isGPS || hasImage) confidenceLevel = 'MEDIUM';
+    // Automated Confidence Logic if not explicitly provided by client
+    let calcConfidence = confidenceLevel || 'LOW';
+    if (!confidenceLevel) {
+      const hasImage = !!evidenceImage;
+      const isGPS = !!gpsUsed;
+      if (isGPS && hasImage) calcConfidence = 'HIGH';
+      else if (isGPS || hasImage) calcConfidence = 'MEDIUM';
+    }
 
     const sighting = new Sighting({
       userId: req.user.id,
@@ -105,18 +110,18 @@ router.post('/sightings', authenticateToken, async (req, res) => {
         lng: parseFloat(coordinates.lng)
       },
       gpsUsed: isGPS,
-      confidenceLevel: req.body.confidenceLevel || confidenceLevel,
+      confidenceLevel: calcConfidence,
       date,
       time: time || '',
       notes: notes || '',
-      imageProof: imageProof || '',
+      speciesImage: speciesImage || '',
+      evidenceImage: evidenceImage || '',
       favorite: favorite || false,
       conservationStatus: conservationStatus || 'Unknown',
       rarityIndex: rarityIndex || 0,
       rarityLabel: rarityLabel || 'Insufficient Data',
       roleAtCreation: req.user.role,
-      // Requirement: Default status is 'pending'
-      verificationStatus: 'pending',
+      verificationStatus: verificationStatus || 'pending',
       verifiedBy: null,
       verifiedAt: null
     });
@@ -147,8 +152,8 @@ router.put('/sightings/:id', authenticateToken, async (req, res) => {
     }
 
     const updateFields = [
-      'species', 'category', 'locationName', 'coordinates', 'date', 'time',
-      'notes', 'imageProof', 'favorite', 'conservationStatus', 'rarityIndex', 'rarityLabel',
+      'species', 'category', 'locationName', 'coordinates', 'date', 'time', 'notes', 
+      'speciesImage', 'evidenceImage', 'favorite', 'conservationStatus', 'rarityIndex', 'rarityLabel',
       'verificationStatus', 'confidenceLevel'
     ];
 
