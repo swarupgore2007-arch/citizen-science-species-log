@@ -42,9 +42,15 @@ router.get('/sightings', authenticateToken, async (req, res) => {
     const sightings = await getSightingsForUser(req.user);
     res.json({ sightings });
   } catch (error) {
-    console.error('Get sightings error:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
+    console.error("FULL SIGHTING SAVE ERROR:");
+    console.error(error);
+
+    res.status(500).json({
+        message: 'Server error',
+        error: error.message,
+        stack: error.stack
+    });
+    }
 });
 
 // Backward-compatible endpoint used by the current frontend
