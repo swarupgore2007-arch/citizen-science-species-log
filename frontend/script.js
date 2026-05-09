@@ -861,12 +861,12 @@ async function saveEdit(event) {
     species: els.editSpecies.value,
     category: info.category,
     conservationStatus: info.conservation_status,
-    location: els.editLocation.value.trim() || current.location,
+    locationName: els.editLocation.value.trim() || current.location,
     date: els.editDate.value,
     time: els.editTime?.value || '',
     notes: els.editNotes.value.trim(),
     favorite: Boolean(els.editFavorite?.checked),
-    image: editPendingImageData || current.image || ''
+    imageProof: editPendingImageData || current.image || ''
   };
 
   try {
@@ -884,7 +884,7 @@ async function saveEdit(event) {
       showToast('Data manager not available', 'error');
     }
   } catch (error) {
-    console.error('Failed to update sighting:', error);
+    console.error("Save failed:", error); // Requirement 9
     showToast('Failed to update sighting on server', 'error');
   }
 }

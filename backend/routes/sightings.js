@@ -117,7 +117,6 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       roleAtCreation: req.user.role,
       // Requirement: Default status is 'pending'
       verificationStatus: 'pending',
-      imageProof: image || '',
       verifiedBy: null,
       verifiedAt: null
     });
@@ -128,7 +127,7 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       sighting
     });
   } catch (error) {
-    console.error(error);
+    console.error(error); // Requirement 10
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -148,8 +147,9 @@ router.put('/sightings/:id', authenticateToken, async (req, res) => {
     }
 
     const updateFields = [
-      'species', 'category', 'location', 'lat', 'lon', 'date', 'time',
-      'notes', 'image', 'favorite', 'conservationStatus', 'rarityIndex', 'rarityLabel'
+      'species', 'category', 'locationName', 'coordinates', 'date', 'time',
+      'notes', 'imageProof', 'favorite', 'conservationStatus', 'rarityIndex', 'rarityLabel',
+      'verificationStatus', 'confidenceLevel'
     ];
 
     updateFields.forEach(field => {
@@ -164,7 +164,7 @@ router.put('/sightings/:id', authenticateToken, async (req, res) => {
       sighting
     });
   } catch (error) {
-    console.error('Update sighting error:', error);
+    console.error(error); // Requirement 10
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -185,7 +185,7 @@ router.delete('/sightings/:id', authenticateToken, async (req, res) => {
 
     res.json({ message: 'Sighting deleted successfully' });
   } catch (error) {
-    console.error('Delete sighting error:', error);
+    console.error(error); // Requirement 10
     res.status(500).json({ message: 'Server error' });
   }
 });
