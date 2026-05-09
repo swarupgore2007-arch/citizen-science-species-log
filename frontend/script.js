@@ -190,6 +190,7 @@ function normalizeSighting(raw) {
     time: raw.time || '',
     lat,
     lon: lng,
+    coordinates: { lat, lng },
     location: raw.locationName || raw.location,
     notes: raw.notes || '',
     speciesImage: raw.speciesImage || '',
@@ -717,6 +718,7 @@ function markerPopup(sighting) {
         <span><strong>Date</strong>${escapeHTML(sighting.date)}${sighting.time ? `, ${escapeHTML(sighting.time)}` : ''}</span>
         <span><strong>Rarity</strong>${escapeHTML(rarity.label)}</span>
         <span><strong>Status</strong>${escapeHTML(sighting.conservationStatus)}</span>
+        <span><strong>Verification</strong>${escapeHTML(sighting.verificationStatus.toUpperCase())}</span>
       </div>
       <p class="popup-notes">${escapeHTML(sighting.notes || 'No notes available')}</p>
       <div class="popup-footer">
@@ -732,16 +734,36 @@ function renderMapMarkers() {
   if (!realMap || !markerLayer || !hotspotLayer) return;
   markerLayer.clearLayers();
   hotspotLayer.clearLayers();
-  // Requirement 6: Trusted sightings only on the map
-  const filtered = getFilteredSightings().filter(s => s.verificationStatus === 'verified');
+
+  // Requirement 8: Debugging logs
+  console.log("Map sightings:", sightings);
+
+  // Requirement 4 & 5: Verification filtering (Admin vs User)
+  const isAdmin = Auth.isAdmin();
+  const filtered = getFilteredSightings().filter(s => {
+    // Requirement 2 & 7: Safe checks for coordinates
+    if (s.coordinates?.lat === undefined || s.coordinates?.lng === undefined) return false;
+    
+    if (isAdmin) return true; // Admin map shows all
+    return s.verificationStatus !== 'rejected'; // User map shows verified and pending
+  });
+
   const bounds = [];
 
   filtered.forEach((sighting) => {
-    const color = categoryColors[sighting.category] || categoryColors.Other;
+    // Requirement 6: Marker colors based on verificationStatus
+    const markerColor = {
+      verified: '#22c55e', // green
+      pending: '#eab308',  // yellow
+      rejected: '#ef4444'  // red
+    }[sighting.verificationStatus] || '#6b7280';
+
     const rare = getRarityInfo(sighting.species).label === 'Rare / Unexpected';
-    const marker = L.circleMarker([sighting.lat, sighting.lon], {
+
+    // Requirement 1: Use sighting.coordinates structure
+    const marker = L.circleMarker([sighting.coordinates.lat, sighting.coordinates.lng], {
       radius: rare ? 10 : 7,
-      fillColor: color,
+      fillColor: markerColor,
       color: rare ? '#fbbf24' : '#ffffff',
       weight: rare ? 4 : 2,
       fillOpacity: 0.9
@@ -752,15 +774,15 @@ function renderMapMarkers() {
       if (popupElement) hydrateSpeciesImages(popupElement);
     });
     markerLayer.addLayer(marker);
-    hotspotLayer.addLayer(L.circle([sighting.lat, sighting.lon], {
+    hotspotLayer.addLayer(L.circle([sighting.coordinates.lat, sighting.coordinates.lng], {
       radius: rare ? 18000 : 10000,
-      color,
-      fillColor: color,
+      color: markerColor,
+      fillColor: markerColor,
       fillOpacity: rare ? 0.16 : 0.08,
       weight: 1,
       interactive: false
     }));
-    bounds.push([sighting.lat, sighting.lon]);
+    bounds.push([sighting.coordinates.lat, sighting.coordinates.lng]);
   });
 
   if (bounds.length) realMap.fitBounds(bounds, { padding: [28, 28], maxZoom: 11 });
