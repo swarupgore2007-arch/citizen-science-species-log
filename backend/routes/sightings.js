@@ -94,11 +94,11 @@ router.post('/sightings', authenticateToken, async (req, res) => {
     const hasImage = !!evidenceImage;
     const finalIsGPS = !!isGPS;
 
-    let calcConfidence = confidenceLevel || 'LOW';
+    let calcConfidence = (confidenceLevel || 'low').toLowerCase();
     if (!confidenceLevel) {
-      if (finalIsGPS && hasImage) calcConfidence = 'HIGH';
-      else if (finalIsGPS || hasImage) calcConfidence = 'MEDIUM';
-      else calcConfidence = 'LOW';
+      if (finalIsGPS && hasImage) calcConfidence = 'high';
+      else if (finalIsGPS || hasImage) calcConfidence = 'medium';
+      else calcConfidence = 'low';
     }
 
     const sighting = new Sighting({
@@ -111,7 +111,7 @@ router.post('/sightings', authenticateToken, async (req, res) => {
         lat: parseFloat(coordinates.lat),
         lng: parseFloat(coordinates.lng)
       },
-      gpsUsed: finalIsGPS,
+      isGPS: finalIsGPS,
       confidenceLevel: calcConfidence,
       date,
       time: time || '',
@@ -155,7 +155,7 @@ router.put('/sightings/:id', authenticateToken, async (req, res) => {
 
     const updateFields = [
       'species', 'category', 'locationName', 'coordinates', 'date', 'time', 'notes', 
-      'speciesImage', 'evidenceImage', 'favorite', 'conservationStatus', 'rarityIndex', 'rarityLabel',
+      'speciesImage', 'evidenceImage', 'favorite', 'conservationStatus', 'rarityIndex', 'rarityLabel', 'isGPS',
       'verificationStatus', 'confidenceLevel'
     ];
 

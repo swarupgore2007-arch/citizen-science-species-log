@@ -21,18 +21,14 @@ const sightingSchema = new mongoose.Schema({
     enum: ['Bird', 'Mammal', 'Reptile', 'Amphibian', 'Insect', 'Plant', 'Butterfly', 'Dragonfly', 'Other'],
     default: 'Other'
   },
-  location: {
+  locationName: {
     type: String,
     required: true,
     trim: true
   },
-  lat: {
-    type: Number,
-    required: true
-  },
-  lon: {
-    type: Number,
-    required: true
+  coordinates: {
+    lat: { type: Number, required: true },
+    lng: { type: Number, required: true }
   },
   date: {
     type: String,
@@ -46,9 +42,17 @@ const sightingSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  image: {
+  speciesImage: {
     type: String,
     default: ''
+  },
+  evidenceImage: {
+    type: String,
+    default: ''
+  },
+  isGPS: {
+    type: Boolean,
+    default: false
   },
   favorite: {
     type: Boolean,
@@ -70,6 +74,16 @@ const sightingSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin', 'super_admin'],
     default: 'user'
+  },
+  verificationStatus: {
+    type: String,
+    enum: ['pending', 'verified', 'rejected'],
+    default: 'pending'
+  },
+  confidenceLevel: {
+    type: String,
+    enum: ['high', 'medium', 'low'],
+    default: 'low'
   }
 }, {
   timestamps: true
