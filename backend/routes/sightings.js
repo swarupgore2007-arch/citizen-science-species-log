@@ -53,7 +53,7 @@ router.get('/my-sightings', authenticateToken, async (req, res) => {
     const sightings = await getSightingsForUser(req.user);
     res.json({ sightings });
   } catch (error) {
-    console.error('Get sightings error:', error);
+    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -61,30 +61,28 @@ router.get('/my-sightings', authenticateToken, async (req, res) => {
 // Add new sighting
 router.post('/sightings', authenticateToken, async (req, res) => {
   try {
-    const {
-      species,
+    const { 
+      species, 
+      imageProof, 
+      locationName, 
+      coordinates, 
       category,
-      location,
-      lat,
-      lon,
       date,
       time,
       notes,
-      image,
       favorite,
       conservationStatus,
       rarityIndex,
       rarityLabel,
-      gpsUsed
+      gpsUsed 
     } = req.body;
 
-    if (!species || !location || !lat || !lon || !date) {
-      return res.status(400).json({ message: 'Required fields: species, location, lat, lon, date' });
+    if (!species || !locationName || !coordinates || !coordinates.lat || !coordinates.lng || !date) {
+      return res.status(400).json({ message: 'Required fields: species, locationName, coordinates (lat/lng), date' });
     }
 
     // Confidence Logic
-    // HIGH: GPS + Image | MEDIUM: GPS only OR Manual + Image | LOW: Manual + No Image
-    const hasImage = !!(image || req.body.imageProof);
+    const hasImage = !!imageProof;
     const isGPS = !!gpsUsed;
     let confidenceLevel = 'LOW';
     if (isGPS && hasImage) confidenceLevel = 'HIGH';
@@ -95,15 +93,17 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       username: req.user.username,
       species,
       category: category || 'Other',
-      location, // Stored as readable location name
-      lat: parseFloat(lat),
-      lon: parseFloat(lon), // lat/lon stored as GPS coordinates
+      locationName,
+      coordinates: {
+        lat: parseFloat(coordinates.lat),
+        lng: parseFloat(coordinates.lng)
+      },
       gpsUsed: isGPS,
-      confidenceLevel,
+      confidenceLevel: req.body.confidenceLevel || confidenceLevel,
       date,
       time: time || '',
       notes: notes || '',
-      image: image || '',
+      imageProof: imageProof || '',
       favorite: favorite || false,
       conservationStatus: conservationStatus || 'Unknown',
       rarityIndex: rarityIndex || 0,
@@ -122,7 +122,7 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       sighting
     });
   } catch (error) {
-    console.error('Add sighting error:', error);
+    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 });

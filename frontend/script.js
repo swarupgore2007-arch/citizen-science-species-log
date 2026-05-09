@@ -177,11 +177,11 @@ function isEndangeredStatus(status = '') {
 }
 
 function normalizeSighting(raw) {
-  if (!raw || !raw.species || !raw.location || !raw.date) return null;
+  if (!raw || !raw.species || !raw.date) return null;
   const info = getSpeciesInfo(raw.species);
-  const lat = Number(raw.lat ?? raw.latitude);
-  const lon = Number(raw.lon ?? raw.longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const lat = Number(raw.coordinates?.lat ?? raw.lat);
+  const lng = Number(raw.coordinates?.lng ?? raw.lon ?? raw.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return {
     id: raw._id || raw.id,
     species: raw.species,
@@ -189,10 +189,10 @@ function normalizeSighting(raw) {
     date: raw.date,
     time: raw.time || '',
     lat,
-    lon,
-    location: raw.location,
+    lon: lng,
+    location: raw.locationName || raw.location,
     notes: raw.notes || '',
-    image: raw.image || raw.imageData || '',
+    image: raw.imageProof || raw.image || '',
     favorite: Boolean(raw.favorite),
     conservationStatus: raw.conservationStatus || info.conservation_status || 'Unknown',
     rarityIndex: Number(raw.rarityIndex) || 0,
@@ -219,14 +219,10 @@ function dedupeSightings(items) {
 
 async function loadStoredSightings() {
   try {
-    if (window.DM && DM.load) {
-      console.log(`[App] Fetching sightings from: ${window.API_BASE}/my-sightings`);
-      const data = await DM.load(); // Fetches via /my-sightings endpoint
-      sightings = dedupeSightings(data);
-    }
+    const data = await DM.load();
+    sightings = dedupeSightings(data);
   } catch (err) {
     console.error('Failed to load sightings:', err);
-    showToast('Failed to load sightings from server', 'error');
   }
 }
 
@@ -806,28 +802,26 @@ async function addSighting(event) {
     category: info.category,
     date: els.dateInput.value,
     time: els.timeInput?.value || '',
-    location: selectedLocation.name,
-    lat: selectedLocation.lat,
-    lon: selectedLocation.lon,
+    locationName: selectedLocation.name,
+    coordinates: {
+      lat: selectedLocation.lat,
+      lng: selectedLocation.lon
+    },
     notes: els.notesInput.value.trim(),
-    image: pendingImageData,
+    imageProof: pendingImageData,
     favorite: Boolean(els.favoriteInput?.checked),
-    conservationStatus: info.conservation_status
+    conservationStatus: info.conservation_status,
+    gpsUsed: !!selectedLocation.isGPS
   };
 
   try {
-    if (window.DM && DM.addSighting) {
-      const savedSighting = await DM.addSighting(sightingData);
-      sightings.push(normalizeSighting(savedSighting));
-      updateAllRarityProperties();
-      resetForm();
-      refreshAll();
-      showToast('Sighting added to the biodiversity log.');
-    } else {
-      showToast('Data manager not available', 'error');
-    }
+    await DM.addSighting(sightingData);
+    await loadStoredSightings(); // Pull fresh data from source of truth
+    resetForm();
+    refreshAll();
+    showToast('Sighting added to the biodiversity log.');
   } catch (error) {
-    console.error('Failed to save sighting:', error);
+    console.error("Save failed:", error);
     showToast('Failed to save sighting to server', 'error');
   }
 }
