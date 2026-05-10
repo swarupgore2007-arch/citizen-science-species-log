@@ -186,9 +186,16 @@ function isEndangeredStatus(status = '') {
 function normalizeSighting(raw) {
   if (!raw || !raw.species || !raw.date) return null;
   const info = getSpeciesInfo(raw.species);
-  const lat = Number(raw.coordinates?.lat);
-  const lng = Number(raw.coordinates?.lng);
+
+  // 1. Support old schema coordinates (lat/lon or longitude vs coordinates.lat/lng)
+  const lat = Number(raw.coordinates?.lat ?? raw.lat);
+  const lng = Number(raw.coordinates?.lng ?? raw.lon ?? raw.longitude);
+
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+  // 2. Identify if this is a historical record (missing verificationStatus)
+  const isOldRecord = !raw.verificationStatus;
+
   return {
     id: raw._id || raw.id,
     species: raw.species,
@@ -196,18 +203,19 @@ function normalizeSighting(raw) {
     date: raw.date,
     time: raw.time || '',
     coordinates: { lat, lng },
-    locationName: raw.locationName || '',
+    locationName: raw.locationName || raw.location || 'Historical Record',
     notes: raw.notes || '',
     speciesImage: raw.speciesImage || '',
-    evidenceImage: raw.evidenceImage || '',
-    confidenceLevel: (raw.confidenceLevel || 'low').toUpperCase(),
+    evidenceImage: raw.evidenceImage || raw.image || '',
+    confidenceLevel: (raw.confidenceLevel || (isOldRecord ? 'medium' : 'low')).toUpperCase(),
     favorite: Boolean(raw.favorite),
     conservationStatus: raw.conservationStatus || info.conservation_status || 'Unknown',
     rarityIndex: Number(raw.rarityIndex) || 0,
     rarityLabel: raw.rarityLabel || 'Insufficient Data',
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
-    verificationStatus: raw.verificationStatus || 'pending',
+    verificationStatus: raw.verificationStatus || 'verified', // Default old records to verified
+    isGPS: raw.isGPS ?? false,
     userId: raw.userId?._id || raw.userId || '',
     username: raw.username || '',
     roleAtCreation: raw.roleAtCreation || raw.role || ''
@@ -359,11 +367,36 @@ function placeholderFor(category) {
   return `https://placehold.co/640x420/${color}/ffffff?text=${encodeURIComponent(category || 'Wildlife')}`;
 }
 
-function imageForSighting(sighting, type = 'species') {
+function imageForSighting(sighting, type = 'priority') {
   if (type === 'evidence') {
     return sighting.evidenceImage || 'https://placehold.co/100x100/64748b/ffffff?text=No+Evidence';
   }
-  return sighting.speciesImage || placeholderFor(sighting.category);
+  // Priority logic: User evidence takes precedence over Wikipedia reference
+  return sighting.evidenceImage || sighting.speciesImage || placeholderFor(sighting.category);
+}
+
+function imageVerificationBadge(sighting) {
+  const styles = `
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: white;
+    z-index: 5;
+    pointer-events: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    backdrop-filter: blur(4px);
+  `;
+  if (sighting.evidenceImage) {
+    return `<div class="image-source-badge verified" style="${styles} background: rgba(34, 197, 94, 0.9);">📸 Image Verified</div>`;
+  }
+  return `<div class="image-source-badge reference" style="${styles} background: rgba(100, 116, 139, 0.8);">Reference Image</div>`;
 }
 
 function speciesSearchNames(speciesName) {
@@ -455,12 +488,16 @@ async function getSpeciesImageUrl(sighting) {
 async function hydrateSpeciesImages(root = document) {
   const images = Array.from(root.querySelectorAll('img[data-hydrate="true"]'));
   await Promise.all(images.map(async (img) => {
-    const sighting = sightings.find((item) => item.id === img.dataset.sightingId) || {
+    const sightingId = img.dataset.sightingId;
+    const sighting = sightings.find((item) => item.id === sightingId) || {
       species: img.dataset.species,
       category: img.dataset.category,
       speciesImage: '',
       evidenceImage: ''
     };
+
+    if (sighting.evidenceImage) return; // Evidence image takes priority; skip Wikipedia hydration
+
     const url = await getSpeciesImageUrl(sighting);
     if (url && img.src !== url) img.src = url;
   }));
@@ -504,7 +541,7 @@ function renderSightingsTable() {
       <td>
         ${escapeHTML(sighting.locationName)}<br>
         <small style="color:var(--text-muted)">📍 ${sighting.coordinates.lat.toFixed(4)}, ${sighting.coordinates.lng.toFixed(4)}</small>
-        ${!sighting.gpsUsed ? '<br><span class="badge badge-insufficient" style="font-size:10px">⚠️ Manual Location</span>' : '<br><span class="badge badge-normal" style="font-size:10px">✅ GPS Verified</span>'}
+        ${!sighting.isGPS ? '<br><span class="badge badge-insufficient" style="font-size:10px">⚠️ Manual Location</span>' : '<br><span class="badge badge-normal" style="font-size:10px">✅ GPS Verified Location</span>'}
       </td>
       <td>
         <small>${escapeHTML(new Date(sighting.createdAt).toLocaleString())}</small>
@@ -535,6 +572,9 @@ function renderSightingsTable() {
 
 function updateDashboard() {
   // Centralized Metrics Processing
+  const adminVisible = sightings.filter(s => s.verificationStatus !== 'rejected');
+  const verifiedOnly = sightings.filter(s => s.verificationStatus === 'verified');
+
   const stats = sightings.reduce((acc, s) => {
     acc.total++;
     acc[s.verificationStatus] = (acc[s.verificationStatus] || 0) + 1;
@@ -543,24 +583,21 @@ function updateDashboard() {
     return acc;
   }, { total: 0, pending: 0, verified: 0, rejected: 0, highConf: 0, lowConf: 0 });
 
-  // Scientific Analytics (Rule 9): Use ONLY verified data for conservation metrics
-  const verifiedOnly = sightings.filter(s => s.verificationStatus === 'verified');
-  
-  const unique = new Set(verifiedOnly.map((item) => item.species));
-  const locationCounts = verifiedOnly.reduce((acc, s) => {
+  const unique = new Set(adminVisible.map((item) => item.species));
+  const locationCounts = adminVisible.reduce((acc, s) => {
     acc[s.locationName] = (acc[s.locationName] || 0) + 1;
     return acc;
   }, {});
   
   const topLocation = Object.entries(locationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
-  const rareTotal = verifiedOnly.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
-  const endangeredTotal = verifiedOnly.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
+  const rareTotal = adminVisible.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
+  const endangeredTotal = adminVisible.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
   
-  const score = verifiedOnly.length
-    ? Math.min(100, Math.round((unique.size / Math.max(verifiedOnly.length, 1)) * 55 + (endangeredTotal / verifiedOnly.length) * 25 + (rareTotal / verifiedOnly.length) * 20))
+  const score = adminVisible.length
+    ? Math.min(100, Math.round((unique.size / Math.max(adminVisible.length, 1)) * 55 + (endangeredTotal / adminVisible.length) * 25 + (rareTotal / adminVisible.length) * 20))
     : 0;
 
-  els.totalSightings.textContent = stats.total;
+  els.totalSightings.textContent = adminVisible.length;
   if (els.verifiedCount) els.verifiedCount.textContent = stats.verified;
   if (els.pendingCount) els.pendingCount.textContent = stats.pending;
   if (els.rejectedCount) els.rejectedCount.textContent = stats.rejected;
@@ -571,7 +608,7 @@ function updateDashboard() {
   els.rareCount.textContent = rareTotal;
   if (els.endangeredCount) els.endangeredCount.textContent = endangeredTotal;
   if (els.biodiversityScore) els.biodiversityScore.textContent = `${score}%`;
-  if (els.previewTotal) els.previewTotal.textContent = sightings.length;
+  if (els.previewTotal) els.previewTotal.textContent = adminVisible.length;
   if (els.previewSpecies) els.previewSpecies.textContent = unique.size;
   if (els.previewLocation) els.previewLocation.textContent = topLocation;
 }
@@ -591,10 +628,13 @@ function renderSpeciesGallery() {
     const rarity = getRarityInfo(sighting.species);
     return `
       <article class="species-card">
-        <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" 
-             data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
-             data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}" 
-             loading="lazy">
+        <div class="card-image-wrapper" style="position: relative; overflow: hidden;">
+          <img src="${escapeHTML(imageForSighting(sighting, 'priority'))}" alt="${escapeHTML(sighting.species)}" 
+               data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
+               data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}" 
+               loading="lazy">
+          ${imageVerificationBadge(sighting)}
+        </div>
         <div class="species-card-body">
           <div class="species-card-top">
             <span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span>
@@ -662,19 +702,20 @@ function upsertChart(canvasId, existing, config) {
 }
 
 function updateCharts() {
-  // Scientific Ranking (Rule 1): Verified Only
   const verifiedData = sightings.filter(s => s.verificationStatus === 'verified');
+  const adminVisible = sightings.filter(s => s.verificationStatus !== 'rejected');
+
+  // 1. TOP SPECIES RANKING (Scientific wildlife analytics - Rule 1/9)
   const species = topEntries(countBy('species', verifiedData), 5);
 
-  // Operational Visibility (Rule 2): Non-Rejected
-  const operationalData = sightings.filter(s => s.verificationStatus !== 'rejected');
-  const locations = topEntries(countBy('locationName', operationalData), 6);
+  // 2. LOCATION DISTRIBUTION (Operational visibility - Rule 2)
+  const locations = topEntries(countBy('locationName', adminVisible), 6);
 
-  // Platform Activity (Rule 3): All data
-  const categories = topEntries(countBy('category', sightings), 8);
+  // 3. SIGHTINGS BY CATEGORY (Platform activity analytics - Rule 3)
+  const categories = topEntries(countBy('category', adminVisible), 8);
 
-  // Trend Datasets (Rule 4)
-  const monthlyData = Object.entries(monthlyStatusCounts(sightings)).sort((a, b) => a[0].localeCompare(b[0]));
+  // 4. MONTHLY TREND GRAPH (Submission trend analytics - Rule 4/6)
+  const monthlyData = Object.entries(monthlyStatusCounts(adminVisible)).sort((a, b) => a[0].localeCompare(b[0]));
   const months = monthlyData.map(i => i[0]);
   
   const colors = categories.map(([label]) => categoryColors[label] || categoryColors.Other);
@@ -764,9 +805,12 @@ function markerPopup(sighting) {
   const roleBadge = isSightingFromAdmin(sighting) ? `<span class="badge badge-normal" style="margin-left:5px">Admin</span>` : '';
   return `
     <div class="popup-card" id="popup-${escapeHTML(sighting.id)}">
-      <img src="${escapeHTML(imageForSighting(sighting, 'species'))}" alt="${escapeHTML(sighting.species)}" class="popup-image" 
-           data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
-           data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}">
+      <div class="popup-image-wrapper" style="position: relative; overflow: hidden;">
+        <img src="${escapeHTML(imageForSighting(sighting, 'priority'))}" alt="${escapeHTML(sighting.species)}" class="popup-image" 
+             data-hydrate="true" data-sighting-id="${escapeHTML(sighting.id)}" 
+             data-species="${escapeHTML(sighting.species)}" data-category="${escapeHTML(sighting.category)}">
+        ${imageVerificationBadge(sighting)}
+      </div>
       <div class="popup-main">
         <span class="popup-kicker">${escapeHTML(sighting.category)} observation</span>
         <h3>${escapeHTML(sighting.species)}</h3>
@@ -795,13 +839,10 @@ function renderMapMarkers() {
   hotspotLayer.clearLayers();
 
   // Visibility Logic for Mapping
-  const isAdmin = Auth.isAdmin();
   const filtered = getFilteredSightings().filter(s => {
-    // Safe coordinate check
     if (!s.coordinates?.lat || !s.coordinates?.lng) return false;
-    
-    if (isAdmin) return true; // Admin map shows all
-    return s.verificationStatus !== 'rejected'; // User map shows verified and pending
+    // Rule 7: Admin/Dashboard map view excludes rejected sightings
+    return s.verificationStatus !== 'rejected';
   });
 
   const bounds = [];
@@ -909,12 +950,20 @@ async function addSighting(event) {
     isGPS: !!selectedLocation.isGPS
   };
 
+  console.log("Submitting isGPS:", sightingData.isGPS);
+
   try {
     await DM.addSighting(sightingData);
-    await loadStoredSightings(); // Pull fresh data from source of truth
-    resetForm();
-    refreshAll();
-    showToast('Sighting added to the biodiversity log.');
+
+try {
+   await loadStoredSightings();
+   resetForm();
+   refreshAll();
+} catch (refreshError) {
+   console.error("Refresh failed:", refreshError);
+}
+
+showToast('Sighting added successfully');
   } catch (error) {
     console.error("Save failed:", error);
     showToast('Failed to save sighting to server', 'error');
@@ -975,6 +1024,7 @@ async function saveEdit(event) {
       updateAllRarityProperties();
       closeEditModal();
       refreshAll();
+      console.log("Operation succeeded");
       showToast('Sighting updated.');
     } else {
       showToast('Data manager not available', 'error');
@@ -1003,13 +1053,24 @@ async function confirmDelete() {
   try {
     if (DM && DM.deleteSighting) {
       for (const id of deleteQueue) {
-        await DM.deleteSighting(id);
-      }
-      sightings = sightings.filter((item) => !deleteQueue.includes(item.id) && !deleteQueue.includes(item._id));
-      updateAllRarityProperties();
-      closeDeleteModal();
-      refreshAll();
-      showToast('Sighting records deleted.');
+   await DM.deleteSighting(id);
+}
+
+try {
+   sightings = sightings.filter(
+      (item) =>
+         !deleteQueue.includes(item.id) &&
+         !deleteQueue.includes(item._id)
+   );
+
+   updateAllRarityProperties();
+   closeDeleteModal();
+   refreshAll();
+} catch (refreshError) {
+   console.error("Refresh failed:", refreshError);
+}
+
+showToast('Sighting deleted successfully');
     } else {
       showToast('Data manager not available', 'error');
     }
@@ -1028,12 +1089,14 @@ function handleTableClick(event) {
   
   if (button.dataset.action === 'verify') {
     DM.verifySighting(id).then(() => {
+      console.log("Operation succeeded");
       showToast('Sighting verified successfully');
       loadStoredSightings().then(refreshAll);
     }).catch(err => showToast(err.message, 'error'));
   }
   if (button.dataset.action === 'reject') {
     DM.rejectSighting(id).then(() => {
+      console.log("Operation succeeded");
       showToast('Sighting rejected');
       loadStoredSightings().then(refreshAll);
     }).catch(err => showToast(err.message, 'error'));
@@ -1164,7 +1227,8 @@ function useCurrentLocation() {
     selectLocation({
       name: 'Current Location',
       lat: position.coords.latitude,
-      lon: position.coords.longitude
+      lon: position.coords.longitude,
+      isGPS: true
     });
     els.useCurrentLocation.textContent = original;
     els.useCurrentLocation.disabled = false;

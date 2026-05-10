@@ -38,13 +38,14 @@ window.DM = {
 
     try {
       const response = await fetch(`${window.API_BASE}${endpoint}`, config);
+      const data = await response.json().catch(() => ({}));
+      console.log("API response:", data);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}`);
+        throw new Error(data.message || `HTTP ${response.status}`);
       }
 
-      return await response.json();
+      return data;
     } catch (error) {
       console.error('[DM] API request failed:', error);
       throw error;
@@ -56,13 +57,8 @@ window.DM = {
   //  Fetches all sightings for current user from database
   // ──────────────────────────────────────────────────────────
   async load() {
-    try {
-      const response = await this.apiRequest('/my-sightings');
-      return response.sightings || [];
-    } catch (error) {
-      console.error('[DM] Load failed:', error);
-      throw error;
-    }
+    const response = await this.apiRequest('/my-sightings');
+    return response.sightings || [];
   },
 
   // ──────────────────────────────────────────────────────────
@@ -78,16 +74,12 @@ window.DM = {
   //  Creates a new sighting record in database
   // ──────────────────────────────────────────────────────────
   async addSighting(sightingData) {
-    try {
-      const response = await this.apiRequest('/sightings', {
-        method: 'POST',
-        body: sightingData
-      });
-      return response.sighting;
-    } catch (error) {
-      console.error('[DM] Add sighting failed:', error);
-      throw error;
-    }
+   const response = await this.apiRequest('/sightings', {
+      method: 'POST',
+      body: sightingData
+   });
+
+   return response.sighting;
   },
 
   // ──────────────────────────────────────────────────────────
@@ -95,16 +87,12 @@ window.DM = {
   //  Modifies an existing sighting in database
   // ──────────────────────────────────────────────────────────
   async updateSighting(id, updateData) {
-    try {
-      const response = await this.apiRequest(`/sightings/${id}`, {
-        method: 'PUT',
-        body: updateData
-      });
-      return response.sighting;
-    } catch (error) {
-      console.error('[DM] Update sighting failed:', error);
-      throw error;
-    }
+     const response = await this.apiRequest(`/sightings/${id}`, {
+      method: 'PUT',
+      body: updateData
+   });
+
+   return response.sighting;
   },
 
   // ──────────────────────────────────────────────────────────
@@ -112,15 +100,11 @@ window.DM = {
   //  Removes a sighting from database
   // ──────────────────────────────────────────────────────────
   async deleteSighting(id) {
-    try {
-      await this.apiRequest(`/sightings/${id}`, {
-        method: 'DELETE'
-      });
-      return true;
-    } catch (error) {
-      console.error('[DM] Delete sighting failed:', error);
-      throw error;
-    }
+    await this.apiRequest(`/sightings/${id}`, {
+      method: 'DELETE'
+   });
+
+   return true;
   },
 
   // ──────────────────────────────────────────────────────────
@@ -148,13 +132,8 @@ window.DM = {
   //  Fetches all users' sightings for admin panel
   // ──────────────────────────────────────────────────────────
   async getAllSightings() {
-    try {
-      const response = await this.apiRequest('/all-sightings');
-      return response.sightings || [];
-    } catch (error) {
-      console.error('[DM] Get all sightings failed:', error);
-      throw error;
-    }
+    const response = await this.apiRequest('/all-sightings');
+    return response.sightings || [];
   },
 
   // ──────────────────────────────────────────────────────────
@@ -211,28 +190,26 @@ window.DM = {
   //  GET ENDANGERED ALERTS (SUPER ADMIN ONLY)
   // ──────────────────────────────────────────────────────────
   async getEndangeredAlerts() {
-    try {
-      const response = await this.apiRequest('/admin/endangered-alerts');
-      return response || [];
-    } catch (error) {
-      console.error('[DM] Get endangered alerts failed:', error);
-      throw error;
-    }
+    const response = await this.apiRequest('/admin/endangered-alerts');
+    return response.alerts || [];
   },
 
   async getPendingSightings() {
-    return this.apiRequest('/admin/pending-sightings');
+    const response = await this.apiRequest('/admin/endangered-alerts');
+    return response.alerts || [];
   },
 
   async verifySighting(id) {
-    return this.apiRequest(`/admin/verify/${id}`, {
+    const response = await this.apiRequest(`/admin/verify/${id}`, {
       method: 'PATCH'
     });
+    return response.sighting;
   },
 
   async rejectSighting(id) {
-    return this.apiRequest(`/admin/reject/${id}`, {
+    const response = await this.apiRequest(`/admin/reject/${id}`, {
       method: 'PATCH'
     });
+    return response.sighting;
   }
 };

@@ -53,7 +53,6 @@ router.post('/register', async (req, res) => {
     );
 
     res.status(201).json({
-      message: 'User registered successfully',
       token,
       user: {
         id: user._id,
@@ -85,7 +84,10 @@ router.post('/login', async (req, res) => {
     // Check password
     const isValidPassword = await user.comparePassword(password);
     if (!isValidPassword) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
     }
 
     // Update last login
@@ -100,7 +102,6 @@ router.post('/login', async (req, res) => {
     );
 
     res.json({
-      message: 'Login successful',
       token,
       user: {
         id: user._id,
@@ -119,7 +120,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
     res.json({ user });
   } catch (error) {

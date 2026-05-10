@@ -45,11 +45,7 @@ router.get('/sightings', authenticateToken, async (req, res) => {
     console.error("FULL SIGHTING SAVE ERROR:");
     console.error(error);
 
-    res.status(500).json({
-        message: 'Server error',
-        error: error.message,
-        stack: error.stack
-    });
+    res.status(500).json({ message: 'Server error' });
     }
 });
 
@@ -85,6 +81,8 @@ router.post('/sightings', authenticateToken, async (req, res) => {
       confidenceLevel,
       verificationStatus
     } = req.body;
+
+    console.log("Received isGPS:", req.body.isGPS);
 
     if (!species || !locationName || !coordinates || !coordinates.lat || !coordinates.lng || !date) {
       return res.status(400).json({ message: 'Required fields: species, locationName, coordinates (lat/lng), date' });
@@ -129,10 +127,8 @@ router.post('/sightings', authenticateToken, async (req, res) => {
     });
 
     await sighting.save();
-    res.status(201).json({
-      message: 'Sighting added successfully',
-      sighting
-    });
+    console.log("Sighting saved successfully");
+    res.status(201).json({ sighting });
   } catch (error) {
     console.error(error); // Requirement 10
     res.status(500).json({ message: 'Server error' });
@@ -166,10 +162,7 @@ router.put('/sightings/:id', authenticateToken, async (req, res) => {
     });
 
     await sighting.save();
-    res.json({
-      message: 'Sighting updated successfully',
-      sighting
-    });
+    res.json({ sighting });
   } catch (error) {
     console.error(error); // Requirement 10
     res.status(500).json({ message: 'Server error' });
@@ -244,7 +237,7 @@ router.patch('/admin/verify/:id', authenticateToken, async (req, res) => {
       },
       { new: true }
     );
-    res.json({ message: 'Sighting verified', sighting });
+    res.json({ sighting });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -261,7 +254,7 @@ router.patch('/admin/reject/:id', authenticateToken, async (req, res) => {
       { verificationStatus: 'rejected' },
       { new: true }
     );
-    res.json({ message: 'Sighting rejected', sighting });
+    res.json({ sighting });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
@@ -324,7 +317,7 @@ router.get('/admin/endangered-alerts', authenticateToken, async (req, res) => {
       { $sort: { daysSinceLastSighting: -1 } }
     ]);
 
-    res.json(alerts);
+    res.json({ alerts });
   } catch (error) {
     console.error('Endangered alerts error:', error);
     res.status(500).json({ message: 'Server error fetching alerts' });

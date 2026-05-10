@@ -40,13 +40,14 @@
     }
 
     const response = await fetch(`${window.API_BASE}${endpoint}`, config);
+    const data = await response.json().catch(() => ({}));
+    console.log("API response:", data);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
+      throw new Error(data.message || `HTTP ${response.status}`);
     }
 
-    return await response.json();
+    return data;
   }
 
   // ──────────────────────────────────────────────────────────
