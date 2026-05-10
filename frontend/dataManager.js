@@ -186,7 +186,7 @@ window.DM = {
     const rows = sightings.map(s => [
       s.species,
       s.category,
-      s.location,
+      s.locationName,
       s.date,
       s.time || '',
       s.notes || '',

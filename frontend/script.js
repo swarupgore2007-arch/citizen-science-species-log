@@ -188,13 +188,11 @@ function normalizeSighting(raw) {
     category: raw.category || info.category,
     date: raw.date,
     time: raw.time || '',
-    lat,
-    lon: lng,
     coordinates: { lat, lng },
-    location: raw.locationName || raw.location,
+    locationName: raw.locationName || raw.location || '',
     notes: raw.notes || '',
     speciesImage: raw.speciesImage || '',
-    evidenceImage: raw.evidenceImage || raw.imageProof || raw.image || '',
+    evidenceImage: raw.evidenceImage || raw.image || raw.imageProof || '',
     favorite: Boolean(raw.favorite),
     conservationStatus: raw.conservationStatus || info.conservation_status || 'Unknown',
     rarityIndex: Number(raw.rarityIndex) || 0,
@@ -222,6 +220,7 @@ function dedupeSightings(items) {
 async function loadStoredSightings() {
   try {
     const data = await DM.load();
+    console.log("Fetched sightings:", data);
     sightings = dedupeSightings(data);
   } catch (err) {
     console.error('Failed to load sightings:', err);
@@ -275,7 +274,7 @@ function refreshSelect(select, values, defaultLabel = 'All') {
 
 function updateFilterOptions() {
   refreshSelect(els.filterSpecies, Array.from(new Set(sightings.map((s) => s.species))).sort(), 'All');
-  refreshSelect(els.filterLocation, Array.from(new Set(sightings.map((s) => s.location))).sort(), 'All');
+  refreshSelect(els.filterLocation, Array.from(new Set(sightings.map((s) => s.locationName))).sort(), 'All');
 }
 
 function computeRarity(speciesName) {
@@ -326,11 +325,11 @@ function getFilteredSightings() {
 
   const filtered = sightings.filter((sighting) => {
     const rarity = getRarityInfo(sighting.species).label;
-    const searchable = `${sighting.species} ${sighting.category} ${sighting.location} ${sighting.notes}`.toLowerCase();
+    const searchable = `${sighting.species} ${sighting.category} ${sighting.locationName} ${sighting.notes}`.toLowerCase();
     const matchesSearch = !search || searchable.includes(search);
     const matchesSpecies = !speciesFilter || sighting.species === speciesFilter;
     const matchesCategory = !categoryFilter || sighting.category === categoryFilter;
-    const matchesLocation = !locationFilter || sighting.location === locationFilter;
+    const matchesLocation = !locationFilter || sighting.locationName === locationFilter;
     const matchesRarity = !rarityFilter ||
       (rarityFilter === 'Endangered' ? isEndangeredStatus(sighting.conservationStatus) : rarity === rarityFilter);
     return matchesSearch && matchesSpecies && matchesCategory && matchesLocation && matchesRarity;
@@ -495,8 +494,8 @@ function renderSightingsTable() {
       </td>
       <td><span class="category-pill" style="--pill-color:${categoryColors[sighting.category] || categoryColors.Other}">${escapeHTML(sighting.category)}</span></td>
       <td>
-        ${escapeHTML(sighting.location)}<br>
-        <small style="color:var(--text-muted)">📍 ${sighting.lat.toFixed(4)}, ${sighting.lon.toFixed(4)}</small>
+        ${escapeHTML(sighting.locationName)}<br>
+        <small style="color:var(--text-muted)">📍 ${sighting.coordinates.lat.toFixed(4)}, ${sighting.coordinates.lng.toFixed(4)}</small>
         ${!sighting.gpsUsed ? '<br><span class="badge badge-insufficient" style="font-size:10px">⚠️ Manual Location</span>' : '<br><span class="badge badge-normal" style="font-size:10px">✅ GPS Verified</span>'}
       </td>
       <td>
@@ -527,24 +526,33 @@ function renderSightingsTable() {
 }
 
 function updateDashboard() {
-  // Requirement 6: Filter for verified sightings only for analytics
-  const verifiedOnly = sightings.filter(s => s.verificationStatus === 'verified');
+  const isAdmin = Auth.isAdmin();
   
-  const unique = new Set(verifiedOnly.map((item) => item.species));
-  const locationCounts = verifiedOnly.reduce((acc, s) => {
-    acc[s.location] = (acc[s.location] || 0) + 1;
+  // Calculate Metrics based on Source of Truth
+  const stats = sightings.reduce((acc, s) => {
+    acc.total++;
+    acc[s.verificationStatus] = (acc[s.verificationStatus] || 0) + 1;
+    return acc;
+  }, { total: 0, pending: 0, verified: 0, rejected: 0 });
+
+  // Analytics/Biodiversity logic: Users use verified + pending; Admins use all
+  const activeSightings = isAdmin ? sightings : sightings.filter(s => s.verificationStatus !== 'rejected');
+  
+  const unique = new Set(activeSightings.map((item) => item.species));
+  const locationCounts = activeSightings.reduce((acc, s) => {
+    acc[s.locationName] = (acc[s.locationName] || 0) + 1;
     return acc;
   }, {});
-  const speciesCounts = verifiedOnly.reduce((acc, s) => { acc[s.species] = (acc[s.species] || 0) + 1; return acc; }, {});
-  const topLocation = Object.entries(locationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
-  const rareTotal = verifiedOnly.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
-  const endangeredTotal = verifiedOnly.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
   
-  const score = verifiedOnly.length
-    ? Math.min(100, Math.round((unique.size / Math.max(verifiedOnly.length, 1)) * 55 + (endangeredTotal / verifiedOnly.length) * 25 + (rareTotal / verifiedOnly.length) * 20))
+  const topLocation = Object.entries(locationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
+  const rareTotal = activeSightings.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
+  const endangeredTotal = activeSightings.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
+  
+  const score = activeSightings.length
+    ? Math.min(100, Math.round((unique.size / Math.max(activeSightings.length, 1)) * 55 + (endangeredTotal / activeSightings.length) * 25 + (rareTotal / activeSightings.length) * 20))
     : 0;
 
-  els.totalSightings.textContent = verifiedOnly.length;
+  els.totalSightings.textContent = stats.total;
   els.uniqueSpecies.textContent = unique.size;
   els.commonLocation.textContent = topLocation;
   els.rareCount.textContent = rareTotal;
@@ -553,7 +561,6 @@ function updateDashboard() {
   if (els.previewTotal) els.previewTotal.textContent = sightings.length;
   if (els.previewSpecies) els.previewSpecies.textContent = unique.size;
   if (els.previewLocation) els.previewLocation.textContent = topLocation;
-  window.__topSpeciesCount = topSpeciesCount;
 }
 
 function renderSpeciesGallery() {
@@ -581,7 +588,7 @@ function renderSpeciesGallery() {
             <span class="badge ${rarity.className}">${escapeHTML(rarity.label)}</span>
           </div>
           <h3>${escapeHTML(sighting.species)}</h3>
-          <p>${escapeHTML(sighting.location)}</p>
+          <p>${escapeHTML(sighting.locationName)}</p>
           <div class="species-card-actions">
             <button class="btn btn-secondary small" data-action="edit" data-id="${escapeHTML(sighting.id)}">Edit</button>
             <button class="btn btn-secondary small" data-action="favorite" data-id="${escapeHTML(sighting.id)}">${sighting.favorite ? 'Unfavorite' : 'Favorite'}</button>
@@ -611,17 +618,17 @@ function chartOptions() {
   };
 }
 
-function countBy(field) {
-  return sightings.reduce((acc, item) => {
+function countBy(field, list = sightings) {
+  return list.reduce((acc, item) => {
     const value = item[field] || 'Unknown';
     acc[value] = (acc[value] || 0) + 1;
     return acc;
   }, {});
 }
 
-function monthlyCounts() {
+function monthlyCounts(list = sightings) {
   const counts = {};
-  sightings.forEach((s) => {
+  list.forEach((s) => {
     const key = (s.date || '').slice(0, 7) || 'Unknown';
     counts[key] = (counts[key] || 0) + 1;
   });
@@ -640,10 +647,13 @@ function upsertChart(canvasId, existing, config) {
 }
 
 function updateCharts() {
-  const species = topEntries(countBy('species'), 5);
-  const locations = topEntries(countBy('location'), 6);
-  const categories = topEntries(countBy('category'), 8);
-  const months = Object.entries(monthlyCounts()).sort((a, b) => a[0].localeCompare(b[0]));
+  const isAdmin = Auth.isAdmin();
+  const activeData = isAdmin ? sightings : sightings.filter(s => s.verificationStatus !== 'rejected');
+  
+  const species = topEntries(countBy('species', activeData), 5);
+  const locations = topEntries(countBy('locationName', activeData), 6);
+  const categories = topEntries(countBy('category', activeData), 8);
+  const months = Object.entries(monthlyCounts(activeData)).sort((a, b) => a[0].localeCompare(b[0]));
   const colors = categories.map(([label]) => categoryColors[label] || categoryColors.Other);
 
   speciesChart = upsertChart('speciesChart', speciesChart, {
@@ -714,7 +724,7 @@ function markerPopup(sighting) {
         <p class="popup-scientific">Citizen science field record</p>
       </div>
       <div class="popup-meta-grid">
-        <span><strong>Location</strong>${escapeHTML(sighting.location)}</span>
+        <span><strong>Location</strong>${escapeHTML(sighting.locationName)}</span>
         <span><strong>Date</strong>${escapeHTML(sighting.date)}${sighting.time ? `, ${escapeHTML(sighting.time)}` : ''}</span>
         <span><strong>Rarity</strong>${escapeHTML(rarity.label)}</span>
         <span><strong>Status</strong>${escapeHTML(sighting.conservationStatus)}</span>
@@ -735,14 +745,11 @@ function renderMapMarkers() {
   markerLayer.clearLayers();
   hotspotLayer.clearLayers();
 
-  // Requirement 8: Debugging logs
-  console.log("Map sightings:", sightings);
-
-  // Requirement 4 & 5: Verification filtering (Admin vs User)
+  // Visibility Logic for Mapping
   const isAdmin = Auth.isAdmin();
   const filtered = getFilteredSightings().filter(s => {
-    // Requirement 2 & 7: Safe checks for coordinates
-    if (s.coordinates?.lat === undefined || s.coordinates?.lng === undefined) return false;
+    // Safe coordinate check
+    if (!s.coordinates?.lat || !s.coordinates?.lng) return false;
     
     if (isAdmin) return true; // Admin map shows all
     return s.verificationStatus !== 'rejected'; // User map shows verified and pending
@@ -871,7 +878,7 @@ function openEditModal(id) {
   els.editSightingId.value = sighting.id;
   els.editSpecies.value = sighting.species;
   els.editCategory.value = sighting.category;
-  els.editLocation.value = sighting.location;
+  els.editLocation.value = sighting.locationName;
   els.editDate.value = sighting.date;
   if (els.editTime) els.editTime.value = sighting.time || '';
   els.editNotes.value = sighting.notes || '';
@@ -900,7 +907,7 @@ async function saveEdit(event) {
     species: els.editSpecies.value,
     category: info.category,
     conservationStatus: info.conservation_status,
-    locationName: els.editLocation.value.trim() || current.location,
+    locationName: els.editLocation.value.trim() || current.locationName,
     date: els.editDate.value,
     time: els.editTime?.value || '',
     notes: els.editNotes.value.trim(),
