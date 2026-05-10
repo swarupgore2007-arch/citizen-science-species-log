@@ -11,6 +11,12 @@ const els = {
   speciesSelect: $('speciesSelect'),
   categoryDisplay: $('categoryDisplay'),
   dateInput: $('dateInput'),
+  verifiedCount: $('verifiedCount'),
+  pendingCount: $('pendingCount'),
+  rejectedCount: $('rejectedCount'),
+  highConfCount: $('highConfCount'),
+  lowConfCount: $('lowConfCount'),
+  verificationChart: $('verificationChart'),
   timeInput: $('timeInput'),
   notesInput: $('notesInput'),
   favoriteInput: $('favoriteInput'),
@@ -121,6 +127,7 @@ let markerLayer = null;
 let hotspotLayer = null;
 const memoryImageCache = new Map();
 let speciesChart = null;
+let verificationChart = null;
 let locationChart = null;
 let categoryChart = null;
 let monthlyChart = null;
@@ -179,8 +186,8 @@ function isEndangeredStatus(status = '') {
 function normalizeSighting(raw) {
   if (!raw || !raw.species || !raw.date) return null;
   const info = getSpeciesInfo(raw.species);
-  const lat = Number(raw.coordinates?.lat ?? raw.lat);
-  const lng = Number(raw.coordinates?.lng ?? raw.lon ?? raw.longitude);
+  const lat = Number(raw.coordinates?.lat);
+  const lng = Number(raw.coordinates?.lng);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return {
     id: raw._id || raw.id,
@@ -189,10 +196,11 @@ function normalizeSighting(raw) {
     date: raw.date,
     time: raw.time || '',
     coordinates: { lat, lng },
-    locationName: raw.locationName || raw.location || '',
+    locationName: raw.locationName || '',
     notes: raw.notes || '',
     speciesImage: raw.speciesImage || '',
-    evidenceImage: raw.evidenceImage || raw.image || raw.imageProof || '',
+    evidenceImage: raw.evidenceImage || '',
+    confidenceLevel: (raw.confidenceLevel || 'low').toUpperCase(),
     favorite: Boolean(raw.favorite),
     conservationStatus: raw.conservationStatus || info.conservation_status || 'Unknown',
     rarityIndex: Number(raw.rarityIndex) || 0,
@@ -200,7 +208,6 @@ function normalizeSighting(raw) {
     createdAt: raw.createdAt || new Date().toISOString(),
     updatedAt: raw.updatedAt || raw.createdAt || new Date().toISOString(),
     verificationStatus: raw.verificationStatus || 'pending',
-    // ── Ownership fields ─ MUST be preserved for role-based filtering ── //
     userId: raw.userId?._id || raw.userId || '',
     username: raw.username || '',
     roleAtCreation: raw.roleAtCreation || raw.role || ''
@@ -284,7 +291,8 @@ function computeRarity(speciesName) {
 }
 
 function getRarityInfo(speciesName) {
-  const actual = sightings.filter((item) => item.species === speciesName).length;
+  // Scientific validation check
+  const actual = sightings.filter((item) => item.species === speciesName && item.verificationStatus === 'verified').length;
   if (actual < 3) {
     return { rarityIndex: 0, label: 'Insufficient Data', className: 'badge-insufficient' };
   }
@@ -526,33 +534,38 @@ function renderSightingsTable() {
 }
 
 function updateDashboard() {
-  const isAdmin = Auth.isAdmin();
-  
-  // Calculate Metrics based on Source of Truth
+  // Centralized Metrics Processing
   const stats = sightings.reduce((acc, s) => {
     acc.total++;
     acc[s.verificationStatus] = (acc[s.verificationStatus] || 0) + 1;
+    if (s.confidenceLevel === 'HIGH') acc.highConf++;
+    if (s.confidenceLevel === 'LOW') acc.lowConf++;
     return acc;
-  }, { total: 0, pending: 0, verified: 0, rejected: 0 });
+  }, { total: 0, pending: 0, verified: 0, rejected: 0, highConf: 0, lowConf: 0 });
 
-  // Analytics/Biodiversity logic: Users use verified + pending; Admins use all
-  const activeSightings = isAdmin ? sightings : sightings.filter(s => s.verificationStatus !== 'rejected');
+  // Scientific Analytics (Rule 9): Use ONLY verified data for conservation metrics
+  const verifiedOnly = sightings.filter(s => s.verificationStatus === 'verified');
   
-  const unique = new Set(activeSightings.map((item) => item.species));
-  const locationCounts = activeSightings.reduce((acc, s) => {
+  const unique = new Set(verifiedOnly.map((item) => item.species));
+  const locationCounts = verifiedOnly.reduce((acc, s) => {
     acc[s.locationName] = (acc[s.locationName] || 0) + 1;
     return acc;
   }, {});
   
   const topLocation = Object.entries(locationCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
-  const rareTotal = activeSightings.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
-  const endangeredTotal = activeSightings.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
+  const rareTotal = verifiedOnly.filter((s) => getRarityInfo(s.species).label === 'Rare / Unexpected').length;
+  const endangeredTotal = verifiedOnly.filter((s) => isEndangeredStatus(s.conservationStatus)).length;
   
-  const score = activeSightings.length
-    ? Math.min(100, Math.round((unique.size / Math.max(activeSightings.length, 1)) * 55 + (endangeredTotal / activeSightings.length) * 25 + (rareTotal / activeSightings.length) * 20))
+  const score = verifiedOnly.length
+    ? Math.min(100, Math.round((unique.size / Math.max(verifiedOnly.length, 1)) * 55 + (endangeredTotal / verifiedOnly.length) * 25 + (rareTotal / verifiedOnly.length) * 20))
     : 0;
 
   els.totalSightings.textContent = stats.total;
+  if (els.verifiedCount) els.verifiedCount.textContent = stats.verified;
+  if (els.pendingCount) els.pendingCount.textContent = stats.pending;
+  if (els.rejectedCount) els.rejectedCount.textContent = stats.rejected;
+  if (els.highConfCount) els.highConfCount.textContent = stats.highConf;
+  if (els.lowConfCount) els.lowConfCount.textContent = stats.lowConf;
   els.uniqueSpecies.textContent = unique.size;
   els.commonLocation.textContent = topLocation;
   els.rareCount.textContent = rareTotal;
@@ -618,7 +631,7 @@ function chartOptions() {
   };
 }
 
-function countBy(field, list = sightings) {
+function countBy(field, list) {
   return list.reduce((acc, item) => {
     const value = item[field] || 'Unknown';
     acc[value] = (acc[value] || 0) + 1;
@@ -626,13 +639,15 @@ function countBy(field, list = sightings) {
   }, {});
 }
 
-function monthlyCounts(list = sightings) {
-  const counts = {};
-  list.forEach((s) => {
-    const key = (s.date || '').slice(0, 7) || 'Unknown';
-    counts[key] = (counts[key] || 0) + 1;
+function monthlyStatusCounts(list) {
+  const result = {};
+  list.forEach(s => {
+    const m = (s.date || '').slice(0, 7) || 'Unknown';
+    if (!result[m]) result[m] = { total: 0, verified: 0, pending: 0, rejected: 0 };
+    result[m].total++;
+    result[m][s.verificationStatus]++;
   });
-  return counts;
+  return result;
 }
 
 function topEntries(counts, limit = 6) {
@@ -647,36 +662,70 @@ function upsertChart(canvasId, existing, config) {
 }
 
 function updateCharts() {
-  const isAdmin = Auth.isAdmin();
-  const activeData = isAdmin ? sightings : sightings.filter(s => s.verificationStatus !== 'rejected');
-  
-  const species = topEntries(countBy('species', activeData), 5);
-  const locations = topEntries(countBy('locationName', activeData), 6);
-  const categories = topEntries(countBy('category', activeData), 8);
-  const months = Object.entries(monthlyCounts(activeData)).sort((a, b) => a[0].localeCompare(b[0]));
-  const colors = categories.map(([label]) => categoryColors[label] || categoryColors.Other);
+  // Scientific Ranking (Rule 1): Verified Only
+  const verifiedData = sightings.filter(s => s.verificationStatus === 'verified');
+  const species = topEntries(countBy('species', verifiedData), 5);
 
+  // Operational Visibility (Rule 2): Non-Rejected
+  const operationalData = sightings.filter(s => s.verificationStatus !== 'rejected');
+  const locations = topEntries(countBy('locationName', operationalData), 6);
+
+  // Platform Activity (Rule 3): All data
+  const categories = topEntries(countBy('category', sightings), 8);
+
+  // Trend Datasets (Rule 4)
+  const monthlyData = Object.entries(monthlyStatusCounts(sightings)).sort((a, b) => a[0].localeCompare(b[0]));
+  const months = monthlyData.map(i => i[0]);
+  
+  const colors = categories.map(([label]) => categoryColors[label] || categoryColors.Other);
+  const statusStats = countBy('verificationStatus', sightings);
+
+  // 5. Verification Status Pie Chart
+  verificationChart = upsertChart('verificationChart', verificationChart, {
+    type: 'pie',
+    data: {
+      labels: ['Verified', 'Pending', 'Rejected'],
+      datasets: [{
+        data: [statusStats.verified || 0, statusStats.pending || 0, statusStats.rejected || 0],
+        backgroundColor: ['#22c55e', '#eab308', '#ef4444']
+      }]
+    },
+    options: { ...chartOptions(), plugins: { ...chartOptions().plugins, title: { display: true, text: 'Moderation Status', color: '#fff' } } }
+  });
+
+  // 1. Top Species (Scientific)
   speciesChart = upsertChart('speciesChart', speciesChart, {
     type: 'bar',
     data: { labels: species.map((i) => i[0]), datasets: [{ data: species.map((i) => i[1]), backgroundColor: '#22c55e', borderRadius: 8, label: 'Sightings' }] },
     options: { ...chartOptions(), plugins: { ...chartOptions().plugins, legend: { display: false } } }
   });
 
+  // 2. Location Distribution (Operational)
   locationChart = upsertChart('locationChart', locationChart, {
     type: 'doughnut',
     data: { labels: locations.map((i) => i[0]), datasets: [{ data: locations.map((i) => i[1]), backgroundColor: ['#22c55e', '#38bdf8', '#f59e0b', '#a78bfa', '#ef4444', '#14b8a6'] }] },
     options: { responsive: true, maintainAspectRatio: false, plugins: chartOptions().plugins }
   });
 
+  // 3. Activity by Category (All)
   categoryChart = upsertChart('categoryChart', categoryChart, {
     type: 'bar',
     data: { labels: categories.map((i) => i[0]), datasets: [{ data: categories.map((i) => i[1]), backgroundColor: colors, borderRadius: 8, label: 'Sightings' }] },
     options: chartOptions()
   });
 
+  // 4. Trend Logic
   monthlyChart = upsertChart('monthlyChart', monthlyChart, {
     type: 'line',
-    data: { labels: months.map((i) => i[0]), datasets: [{ data: months.map((i) => i[1]), label: 'Monthly sightings', borderColor: '#38bdf8', backgroundColor: 'rgba(56, 189, 248, 0.18)', fill: true, tension: 0.35 }] },
+    data: { 
+      labels: months, 
+      datasets: [
+        { data: monthlyData.map(i => i[1].total), label: 'Total', borderColor: '#38bdf8', tension: 0.35 },
+        { data: monthlyData.map(i => i[1].verified), label: 'Verified', borderColor: '#22c55e', tension: 0.35 },
+        { data: monthlyData.map(i => i[1].pending), label: 'Pending', borderColor: '#eab308', tension: 0.35 },
+        { data: monthlyData.map(i => i[1].rejected), label: 'Rejected', borderColor: '#ef4444', tension: 0.35 }
+      ]
+    },
     options: chartOptions()
   });
 }
@@ -726,15 +775,15 @@ function markerPopup(sighting) {
       <div class="popup-meta-grid">
         <span><strong>Location</strong>${escapeHTML(sighting.locationName)}</span>
         <span><strong>Date</strong>${escapeHTML(sighting.date)}${sighting.time ? `, ${escapeHTML(sighting.time)}` : ''}</span>
-        <span><strong>Rarity</strong>${escapeHTML(rarity.label)}</span>
+        <span><strong>User</strong>${escapeHTML(sighting.username)}</span>
+        <span><strong>Moderation</strong>${escapeHTML(sighting.verificationStatus.toUpperCase())}</span>
+        <span><strong>Confidence</strong>${escapeHTML(sighting.confidenceLevel)}</span>
         <span><strong>Status</strong>${escapeHTML(sighting.conservationStatus)}</span>
-        <span><strong>Verification</strong>${escapeHTML(sighting.verificationStatus.toUpperCase())}</span>
       </div>
       <p class="popup-notes">${escapeHTML(sighting.notes || 'No notes available')}</p>
       <div class="popup-footer">
-        <span>${sighting.favorite ? 'Favorite record' : 'Field record'}</span>
-        <span>Logged by: ${escapeHTML(sighting.username || 'Unknown')} ${roleBadge}</span>
-        <span>Biodiversity score ${score}</span>
+        <small>ID: ${escapeHTML(sighting.id)}</small>
+        <small>Quality Score: ${score}</small>
       </div>
     </div>
   `;
