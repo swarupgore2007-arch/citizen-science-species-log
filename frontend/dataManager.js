@@ -151,6 +151,10 @@ window.DM = {
     URL.revokeObjectURL(url);
   },
 
+  exportPrintReport(sightings) {
+   window.print();
+  },
+
   // ──────────────────────────────────────────────────────────
   //  EXPORT CSV
   //  Downloads sightings as CSV file
@@ -160,6 +164,8 @@ window.DM = {
       alert('No sightings to export');
       return;
     }
+  
+  
 
     const headers = ['Species', 'Category', 'Location', 'Date', 'Time', 'Notes', 'Favorite'];
     const rows = sightings.map(s => [
